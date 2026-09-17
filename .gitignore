@@ -30,3 +30,6 @@ Thumbs.db
 
 # Drizzle
 .drizzle/
+
+# Nested prototype repo — has its own .git, not part of this repo's history
+rms/

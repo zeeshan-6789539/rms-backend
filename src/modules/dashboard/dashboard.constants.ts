@@ -1,0 +1,2 @@
+export const DASHBOARD_TREND_MONTHS = 6;
+export const DASHBOARD_RECENT_PAYMENTS_LIMIT = 5;

@@ -17,7 +17,13 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from './modules/auth/guards/roles.guard.js';
 import { CompaniesModule } from './modules/companies/companies.module.js';
+import { DashboardModule } from './modules/dashboard/dashboard.module.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { LeasesModule } from './modules/leases/leases.module.js';
+import { LedgerModule } from './modules/ledger/ledger.module.js';
+import { PaymentsModule } from './modules/payments/payments.module.js';
+import { PropertiesModule } from './modules/properties/properties.module.js';
+import { TenantsModule } from './modules/tenants/tenants.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 
 @Module({
@@ -58,6 +64,12 @@ import { UsersModule } from './modules/users/users.module.js';
     AuthModule,
     UsersModule,
     CompaniesModule,
+    PropertiesModule,
+    TenantsModule,
+    LeasesModule,
+    LedgerModule,
+    PaymentsModule,
+    DashboardModule,
     HealthModule,
   ],
   providers: [

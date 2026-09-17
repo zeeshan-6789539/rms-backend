@@ -1,0 +1,248 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { ChargeType } from '../../common/enums/charge-type.enum.js';
+import { SortOrder } from '../../common/enums/sort-order.enum.js';
+import { TransactionType } from '../../common/enums/transaction-type.enum.js';
+import type { IPaginatedResult } from '../../common/interfaces/i-paginated-result.js';
+import { buildPaginatedResult } from '../../common/utils/pagination.util.js';
+import { LeasesService } from '../leases/leases.service.js';
+import type { CreateLedgerEntryDto } from './dto/create-ledger-entry.dto.js';
+import type { GenerateMonthlyRentResponseDto } from './dto/generate-monthly-rent-response.dto.js';
+import type { LedgerEntryResponseDto } from './dto/ledger-entry-response.dto.js';
+import type { QueryLedgerDto } from './dto/query-ledger.dto.js';
+import type { ILedgerEntryRow, ILedgerEntryWithBalance } from './interfaces/i-ledger-entry-row.js';
+import type { ISkippedLease } from './interfaces/i-skipped-lease.js';
+import { LedgerRepository } from './ledger.repository.js';
+import { toLedgerEntryResponse } from './mappers/ledger-entry.mapper.js';
+
+@Injectable()
+export class LedgerService {
+  constructor(
+    private readonly ledgerRepository: LedgerRepository,
+    private readonly leasesService: LeasesService,
+  ) {}
+
+  async findAll(
+    companyId: string,
+    query: QueryLedgerDto,
+  ): Promise<IPaginatedResult<LedgerEntryResponseDto>> {
+    const entries = await this.buildStatement(companyId, query.leaseId, query.search, query.sortOrder);
+
+    const start = (query.page - 1) * query.limit;
+    const page = entries.slice(start, start + query.limit);
+
+    return buildPaginatedResult(
+      page.map(toLedgerEntryResponse),
+      entries.length,
+      query.page,
+      query.limit,
+    );
+  }
+
+  async findOne(companyId: string, id: string): Promise<LedgerEntryResponseDto> {
+    const leaseId =
+      (await this.ledgerRepository.findChargeLeaseId(id, companyId)) ??
+      (await this.ledgerRepository.findPaymentLeaseId(id, companyId));
+
+    if (!leaseId) {
+      throw new NotFoundException(`No ledger entry was found with id ${id}`);
+    }
+
+    const entries = await this.buildStatement(companyId, leaseId, undefined, SortOrder.DESC);
+    const entry = entries.find((row) => row.id === id);
+
+    if (!entry) {
+      throw new NotFoundException(`No ledger entry was found with id ${id}`);
+    }
+
+    return toLedgerEntryResponse(entry);
+  }
+
+  async create(
+    companyId: string,
+    userId: string,
+    dto: CreateLedgerEntryDto,
+  ): Promise<LedgerEntryResponseDto> {
+    const lease = await this.leasesService.findRowOrFail(companyId, dto.leaseId);
+
+    const transactionType =
+      dto.entryType === ChargeType.DISCOUNT_ADJUSTMENT
+        ? TransactionType.CREDIT
+        : TransactionType.DEBIT;
+
+    const inserted = await this.ledgerRepository.createCharge({
+      companyId,
+      propertyId: lease.propertyId,
+      tenantId: lease.tenantId,
+      leaseId: lease.id,
+      chargeType: dto.entryType,
+      transactionType,
+      amount: dto.amount,
+      dueDate: dto.dueDate,
+      description: dto.description,
+      createdBy: userId,
+    });
+
+    return this.findOne(companyId, inserted.id);
+  }
+
+  async generateMonthlyRent(
+    companyId: string,
+    userId: string,
+  ): Promise<GenerateMonthlyRentResponseDto> {
+    const billingMonth = this.currentBillingMonth();
+    const monthLabel = this.billingMonthLabel(billingMonth);
+
+    const activeLeases = await this.ledgerRepository.findActiveLeasesForBilling(companyId);
+    const alreadyGeneratedLeaseIds = await this.ledgerRepository.findGeneratedLeaseIds(
+      companyId,
+      billingMonth,
+    );
+
+    const skipped: ISkippedLease[] = [];
+    const dueLeases: Array<{
+      leaseId: string;
+      propertyId: string;
+      tenantId: string;
+      propertyName: string;
+      tenantName: string;
+      rentAmount: string;
+    }> = [];
+
+    for (const lease of activeLeases) {
+      if (lease.rentAmount === null) {
+        skipped.push({
+          leaseId: lease.leaseId,
+          propertyName: lease.propertyName,
+          tenantName: lease.tenantName,
+          reason: 'no_rent_schedule',
+        });
+      } else if (alreadyGeneratedLeaseIds.has(lease.leaseId)) {
+        skipped.push({
+          leaseId: lease.leaseId,
+          propertyName: lease.propertyName,
+          tenantName: lease.tenantName,
+          reason: 'already_generated',
+        });
+      } else {
+        dueLeases.push({ ...lease, rentAmount: lease.rentAmount });
+      }
+    }
+
+    const namesByLeaseId = new Map(dueLeases.map((lease) => [lease.leaseId, lease]));
+
+    const insertedRows = await this.ledgerRepository.insertMonthlyRentCharges(
+      dueLeases.map((lease) => ({
+        companyId,
+        propertyId: lease.propertyId,
+        tenantId: lease.tenantId,
+        leaseId: lease.leaseId,
+        chargeType: ChargeType.MONTHLY_RENT,
+        transactionType: TransactionType.DEBIT,
+        amount: lease.rentAmount,
+        billingMonth,
+        dueDate: billingMonth,
+        description: `Monthly rent for ${monthLabel}`,
+        createdBy: userId,
+      })),
+    );
+
+    // runningBalance is left null here (an N+1 recompute per lease isn't worth it for a bulk job)
+    const generated: LedgerEntryResponseDto[] = insertedRows.map((row) => {
+      const lease = namesByLeaseId.get(row.leaseId);
+
+      return toLedgerEntryResponse({
+        id: row.id,
+        companyId: row.companyId,
+        propertyId: row.propertyId,
+        tenantId: row.tenantId,
+        leaseId: row.leaseId,
+        propertyName: lease?.propertyName ?? '',
+        tenantName: lease?.tenantName ?? '',
+        paymentId: null,
+        entryType: row.chargeType,
+        transactionType: row.transactionType,
+        amount: row.amount,
+        runningBalance: null,
+        billingMonth: row.billingMonth,
+        dueDate: row.dueDate,
+        description: row.description,
+        createdAt: row.createdAt,
+        createdBy: row.createdBy,
+      });
+    });
+
+    return { billingMonth, generated, skipped };
+  }
+
+  private async buildStatement(
+    companyId: string,
+    leaseId: string | undefined,
+    search: string | undefined,
+    sortOrder: SortOrder,
+  ): Promise<ILedgerEntryWithBalance[]> {
+    const [chargeRows, paymentRows] = await Promise.all([
+      this.ledgerRepository.findChargesForStatement(companyId, leaseId, search),
+      this.ledgerRepository.findPaymentsForStatement(companyId, leaseId, search),
+    ]);
+
+    const withBalance = this.attachRunningBalance([...chargeRows, ...paymentRows]);
+    const direction = sortOrder === SortOrder.ASC ? 1 : -1;
+
+    return withBalance.sort((a, b) => direction * this.compareForDisplay(a, b));
+  }
+
+  // Walks each lease's entries in insertion order to derive a running balance, since it isn't stored per-row
+  private attachRunningBalance(entries: ILedgerEntryRow[]): ILedgerEntryWithBalance[] {
+    const byLease = new Map<string, ILedgerEntryRow[]>();
+
+    for (const entry of entries) {
+      const group = byLease.get(entry.leaseId);
+
+      if (group) {
+        group.push(entry);
+      } else {
+        byLease.set(entry.leaseId, [entry]);
+      }
+    }
+
+    const result: ILedgerEntryWithBalance[] = [];
+
+    for (const group of byLease.values()) {
+      const chronological = [...group].sort(
+        (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+      );
+      let balance = 0;
+
+      for (const entry of chronological) {
+        balance += entry.transactionType === TransactionType.CREDIT ? -Number(entry.amount) : Number(entry.amount);
+        result.push({ ...entry, runningBalance: balance.toFixed(2) });
+      }
+    }
+
+    return result;
+  }
+
+  private compareForDisplay(a: ILedgerEntryWithBalance, b: ILedgerEntryWithBalance): number {
+    if (a.billingMonth !== b.billingMonth) {
+      if (a.billingMonth === null) return 1;
+      if (b.billingMonth === null) return -1;
+      return a.billingMonth < b.billingMonth ? 1 : -1;
+    }
+
+    return b.createdAt.getTime() - a.createdAt.getTime();
+  }
+
+  private currentBillingMonth(): string {
+    const now = new Date();
+
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  }
+
+  private billingMonthLabel(billingMonth: string): string {
+    return new Date(`${billingMonth}T00:00:00Z`).toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC',
+    });
+  }
+}
