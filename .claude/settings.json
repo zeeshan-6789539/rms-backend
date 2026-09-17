@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npm -v)",
+      "PowerShell(npm view @nestjs/throttler versions --json)",
+      "PowerShell(npm view @nestjs/throttler dist-tags --json)",
+      "PowerShell(npm view pino version)",
+      "PowerShell(npm view passport version)",
+      "PowerShell(node -e \"const c=require\\('node:crypto'\\); console.log\\('ACCESS='+c.randomBytes\\(48\\).toString\\('hex'\\)\\); console.log\\('REFRESH='+c.randomBytes\\(48\\).toString\\('hex'\\)\\)\")",
+      "Bash(pnpm run *)",
+      "Bash(echo \"build exit: $?\")",
+      "Bash(node -e ' *)",
+      "Bash(docker rm *)",
+      "Bash(docker run *)",
+      "Bash(docker exec *)",
+      "Bash(break)",
+      "Bash(export DATABASE_URL=\"postgresql://postgres:postgres@localhost:55432/rms\")",
+      "Bash(pnpm db:seed)",
+      "Bash(node -e \"console.log\\(process.version\\)\")",
+      "Bash(node \"C:/Users/msz10105/AppData/Local/Temp/claude/d--GitHub-rms-backend/67f2a85e-48e1-4d1e-8058-fa579db7a7c6/scratchpad/ensure-db.mjs\")",
+      "Bash(node \"C:/Users/msz10105/AppData/Local/Temp/claude/d--GitHub-rms-backend/67f2a85e-48e1-4d1e-8058-fa579db7a7c6/scratchpad/t.ts\")",
+      "Bash(pnpm db:reset)",
+      "Bash(pnpm db:push)",
+      "Bash(pnpm db:push --force)",
+      "Bash(curl -s -o /dev/null -w \"docs: %{http_code}\\\\n\" http://localhost:3000/docs)",
+      "Bash(curl -s -o /dev/null -w \"docs-json: %{http_code}\\\\n\" http://localhost:3000/docs-json)",
+      "Bash(curl -s -o /dev/null -w \"liveness: %{http_code}\\\\n\" http://localhost:3000/health/liveness)",
+      "Bash(curl -s -o /dev/null -w \"docs: %{http_code}\\\\n\" http://localhost:5000/docs)",
+      "Bash(curl -s -o /dev/null -w \"docs-json: %{http_code}\\\\n\" http://localhost:5000/docs-json)",
+      "Bash(curl -s -w \"\\\\nliveness: %{http_code}\\\\n\" http://localhost:5000/health/liveness)",
+      "PowerShell(pnpm exec tsc --noEmit -p tsconfig.json)",
+      "PowerShell(pnpm exec oxlint src/database/database.module.ts src/common/utils/url.util.ts)",
+      "PowerShell($p = Start-Process -FilePath \"pnpm\" -ArgumentList \"start\" -NoNewWindow -PassThru -RedirectStandardOutput \"$env:TEMP\\\\rms-start.log\" -RedirectStandardError \"$env:TEMP\\\\rms-start.err\"; Start-Sleep -Seconds 25; try { Stop-Process -Id $p.Id -Force -ErrorAction Stop } catch {}; Get-Content \"$env:TEMP\\\\rms-start.log\" -Tail 40; Get-Content \"$env:TEMP\\\\rms-start.err\" -Tail 20)",
+      "Bash(timeout 30 pnpm start)",
+      "PowerShell(pnpm build 2>&1)",
+      "Bash(pnpm build *)",
+      "Bash(echo \"=== TSC EXIT: $? ===\")",
+      "Bash(pnpm lint *)",
+      "Bash(pnpm test *)",
+      "Bash(timeout 25 node dist/main)"
+    ]
+  }
+}

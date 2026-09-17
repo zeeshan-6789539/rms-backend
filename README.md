@@ -1,0 +1,198 @@
+# RMS Backend
+
+Restaurant Management System API — NestJS 12 (ESM) + Drizzle ORM + PostgreSQL.
+
+## Requirements
+
+- Node.js >= 22
+- pnpm >= 11 (`corepack enable pnpm`)
+- PostgreSQL 14+
+
+This project uses **pnpm only** — `packageManager` is pinned in `package.json` and project settings live in `pnpm-workspace.yaml`. Do not run `npm install`; it will produce a `package-lock.json` that conflicts with `pnpm-lock.yaml`.
+
+## Getting started
+
+```bash
+pnpm install
+cp .env.example .env     # then fill in DATABASE_URL and the two JWT secrets
+pnpm db:push             # pushes src/database/schema straight to the database
+pnpm db:seed             # creates the super admin from SEED_SUPER_ADMIN_*
+pnpm start:dev
+```
+
+- API: `http://localhost:3000/api/v1`
+- Swagger UI: `http://localhost:3000/docs`
+- Probes: `http://localhost:3000/health/liveness`, `/health/readiness`
+
+Generate a JWT secret with:
+
+```bash
+node -e "console.log(require('node:crypto').randomBytes(48).toString('hex'))"
+```
+
+## Scripts
+
+| Script | What it does |
+| --- | --- |
+| `pnpm start:dev` | Watch-mode dev server |
+| `pnpm build` | Compile to `dist/` |
+| `pnpm start:prod` | Run the compiled build |
+| `pnpm lint` | oxlint with type-aware rules |
+| `pnpm format` | Prettier over `src/` and `test/` |
+| `pnpm test` | Unit tests (vitest) |
+| `pnpm test:e2e` | End-to-end tests |
+| `pnpm db:generate` | Generate a migration from schema changes |
+| `pnpm db:migrate` | Apply pending migrations |
+| `pnpm db:push` | Push schema straight to the DB (dev only) |
+| `pnpm db:seed` | Create the super admin from `SEED_SUPER_ADMIN_*` (idempotent) |
+| `pnpm db:studio` | Drizzle Studio |
+
+## Folder structure
+
+```
+src/
+├── main.ts                     # Bootstrap: helmet, compression, CORS, versioning, Swagger
+├── app.module.ts               # Root module + global pipe/filter/interceptors/guards
+├── bootstrap/                  # Bootstrap-time wiring kept out of main.ts
+├── config/                     # Namespaced config + zod env validation
+│   ├── env.validation.ts       # Single source of truth for every env var
+│   ├── env.ts                  # Parsed-once env accessor
+│   ├── app.config.ts           # registerAs('app')
+│   ├── database.config.ts      # registerAs('database')
+│   ├── jwt.config.ts           # registerAs('jwt')
+│   └── interfaces/
+├── common/                     # Cross-cutting, domain-agnostic building blocks
+│   ├── constants/
+│   ├── decorators/             # @Public, @Roles, @CurrentUser, @SkipResponseTransform
+│   ├── dto/                    # PaginationQueryDto, UuidParamDto
+│   ├── enums/
+│   ├── filters/                # AllExceptionsFilter
+│   ├── interceptors/           # ResponseInterceptor, TimeoutInterceptor
+│   ├── interfaces/
+│   └── utils/                  # Reusable pure helpers (hash, pagination, string, jwt)
+├── database/                   # Drizzle wiring — one global module
+│   ├── database.module.ts      # Provides DRIZZLE + PG_POOL, closes pool on shutdown
+│   ├── database.constants.ts
+│   ├── schema/                 # One file per table + barrel index
+│   ├── migrations/             # Generated SQL — commit these
+│   └── interfaces/             # Row types inferred from the schema
+└── modules/                    # Feature modules — add new domains here
+    ├── auth/                   # Register, login, refresh rotation, logout, RBAC guards
+    ├── users/                  # Controller → service → repository reference pattern
+    ├── companies/              # Tenants — same shape as users
+    └── health/                 # Terminus liveness/readiness
+```
+
+### Conventions
+
+- **ESM.** `package.json` sets `"type": "module"` and TypeScript uses `nodenext`, so every relative import carries a `.js` extension — including in `.ts` files.
+- **Layering.** Controllers validate and delegate; services hold business rules; repositories are the only place that touches Drizzle. Adding a domain means adding a folder under `modules/` with the same shape.
+- **Interfaces** live in their own files under `interfaces/` and are prefixed with `I`.
+- **Reusable helpers** go in a `utils/` folder, never inlined at the call site.
+
+## Request and response shape
+
+**Every** response uses the same four keys, success or failure. `data` is null on failure, `error` is null on success, and `message` is always populated.
+
+Success — wrapped by `ResponseInterceptor`:
+
+```json
+{
+  "success": true,
+  "message": "Users retrieved successfully",
+  "data": { "items": [], "meta": {} },
+  "error": null
+}
+```
+
+Failure — normalised by `AllExceptionsFilter`:
+
+```json
+{
+  "success": false,
+  "message": "Validation failed. Please check the submitted fields.",
+  "data": null,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "details": ["email must be an email"]
+  }
+}
+```
+
+`error.code` is an [`ErrorCode`](src/common/enums/error-code.enum.ts) — a stable machine-readable string clients can branch on, while `message` stays human-facing and `details` carries the per-field specifics.
+
+Set the success message per handler with `@ResponseMessage('User created successfully')`. Without it, the interceptor falls back to a default for the HTTP verb. Add `@SkipResponseTransform()` to return a payload verbatim — the health controller uses this so orchestrators see Terminus' native shape.
+
+`DELETE` handlers return **200, not 204**, because a 204 carries no body and the envelope would never reach the client.
+
+### List endpoints
+
+Every list endpoint extends `PaginationQueryDto`, so it takes `page`, `limit` (max 100), `search` and `sortOrder` for free, and returns `{ items, meta }` inside `data`:
+
+```
+GET /api/v1/users?page=1&limit=20&search=aisha&role=manager&status=true
+```
+
+`sortOrder` defaults to `desc` on `created_at`, so **the newest record is always first** unless a caller asks otherwise. Ordering falls back to `id` as a tiebreaker, which is stable because ids are time-ordered UUIDv7 — two rows created in the same millisecond keep a deterministic order across pages.
+
+Search is case-insensitive "contains" via the shared `buildSearchCondition()` helper; pass it whichever columns a module wants searchable. `LIKE` wildcards in user input are escaped, so a caller cannot widen their own query.
+
+### Errors from the database
+
+Repositories wrap writes in `withDatabaseErrors()`, which maps Postgres SQLSTATE codes onto proper HTTP exceptions — `23505` becomes a 409, `23503`/`23514` become 400s, deadlocks become a retryable 409. Each module supplies a constraint-name → message map (see [users.constants.ts](src/modules/users/users.constants.ts)) so a tripped constraint explains itself instead of leaking driver text.
+
+In production the filter never returns an internal error's message; it logs the real one and returns a generic message with an `INTERNAL_ERROR` code.
+
+## Auth
+
+`JwtAuthGuard` and `RolesGuard` are registered globally, so **every route is protected by default**.
+
+- `@Public()` opts a route out of authentication.
+- `@Roles(UserRole.SUPER_ADMIN, UserRole.CLIENT_ADMIN)` restricts a route to specific roles.
+- `@CurrentUser()` injects `{ id, username, role, companyId }`; `@CurrentUser('id')` injects one field.
+
+Login uses **username, not email** — email is deliberately non-unique so several users can share one address. Roles are `super_admin` (platform-level, no company), `client_admin` (owns a company), `manager`, `staff`, `customer`.
+
+**Every `/users` and `/companies` route is `super_admin` only.** The restriction is declared once with `@Roles(UserRole.SUPER_ADMIN)` at the controller class, so a new route inherits it rather than having to remember it. The `/auth` routes stay open to their normal audiences — `register`, `login`, `refresh` and `logout` are public, `me` and `logout-all` need any authenticated user.
+
+Refresh tokens are rotated on every use: the presented token is revoked and a new pair is issued. Each token is stored argon2-hashed and keyed by its `jti`. Presenting an already-revoked token is treated as a replay and revokes every session for that user.
+
+## Database workflow
+
+1. Edit or add a table under `src/database/schema/`.
+2. Export it from `src/database/schema/index.ts`.
+3. `pnpm db:generate` to produce a migration.
+4. Review the generated SQL, then `pnpm db:migrate`.
+
+Tables: `companies` (tenants) → `users` (nullable `company_id`, since `super_admin` is platform-level) → `refresh_tokens`.
+
+Inject the typed client with `@Inject(DRIZZLE) private readonly db: IDrizzleDb`.
+
+### Primary keys are UUIDv7
+
+Every table's `id` defaults to [`uuidv7()`](src/common/utils/uuid.util.ts), not `gen_random_uuid()`. A v4 is fully random, so inserts scatter across the whole B-tree and cause page splits, poor cache locality and oversized indexes. A v7 puts a 48-bit millisecond timestamp in its leading bits, so inserts append to the right edge like a sequence while staying globally unique and non-enumerable. Values also sort chronologically as plain strings.
+
+The generator uses RFC 9562's 12-bit counter method, so ids minted inside the same millisecond stay ordered, and it holds its ordering if the system clock steps backwards.
+
+Because ids are no longer v4, DTOs validate with `@IsUUID()` (any version) — `@IsUUID('4')` would reject every id this app now issues.
+
+### Lifecycle: `status`, not `deleted_at`
+
+There is no soft-delete timestamp and no separate `is_active` flag. Each row carries one boolean, `status` — `true` is active, `false` is deactivated.
+
+`DELETE /users/:id` sets `status` to false and returns the updated row; `PATCH /users/:id/restore` sets it back to true. Rows are never physically removed, which keeps foreign keys and audit history intact. Reads (`findById`, `findByUsername`) deliberately do **not** filter on `status`, so an admin can still see and restore a deactivated user, while `login` and the JWT strategy reject `status: false` with an explicit message.
+
+## Time and timezones
+
+**Every datetime is stored and transmitted in UTC. No exceptions.** Four layers enforce this:
+
+1. **Columns** are `timestamptz`, never bare `timestamp`. Postgres normalises `timestamptz` to UTC on write, so storage is UTC by definition. A plain `timestamp` column would silently store whatever wall-clock string it was handed — if you add one, you have broken this rule.
+2. **The Postgres session** runs with `-c timezone=UTC` ([database.module.ts](src/database/database.module.ts)), so `now()`, `date_trunc` and `CURRENT_DATE` in raw SQL resolve in UTC rather than the server's local zone.
+3. **The Node process** is pinned with `process.env.TZ = 'UTC'` ([timezone.bootstrap.ts](src/bootstrap/timezone.bootstrap.ts)), imported first in every entrypoint. Without it, log lines and any `toString()`/`toLocaleString()` drift to the host's zone.
+4. **Tests** set the same, so a suite can never pass only on a developer's machine.
+
+API responses carry ISO-8601 with a `Z` suffix (`2026-09-15T16:47:42.146Z`), because a JS `Date` serialises via `toISOString()`.
+
+## Configuration
+
+All environment variables are declared in [`src/config/env.validation.ts`](src/config/env.validation.ts). Startup fails with every invalid variable listed at once, so a missing secret never surfaces as a runtime error later. Add a new variable there first, then expose it through the relevant `registerAs` namespace.

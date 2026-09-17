@@ -1,0 +1,13 @@
+# pnpm 11 reads project settings from here, not from the "pnpm" field in package.json
+allowBuilds:
+  esbuild: true
+  '@scarf/scarf': false
+
+# @nestjs/throttler still declares a Nest 11 peer ceiling; drop this once it ships v12 support
+peerDependencyRules:
+  allowedVersions:
+    '@nestjs/throttler>@nestjs/common': '12'
+    '@nestjs/throttler>@nestjs/core': '12'
+
+minimumReleaseAgeExclude:
+  - nestjs-pino@5.2.0
