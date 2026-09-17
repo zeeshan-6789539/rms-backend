@@ -36,7 +36,7 @@ const OUTSTANDING_BALANCE_SQL = sql<string>`(
   ), 0)
   -
   COALESCE((SELECT SUM(${payments.amountPaid}) FROM ${payments} WHERE ${payments.leaseId} = ${leases.id}), 0)
-)`;
+)::numeric(10, 2)`;
 
 interface IUpdateRentParams {
   companyId: string;
