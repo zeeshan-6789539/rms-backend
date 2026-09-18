@@ -45,6 +45,7 @@ node -e "console.log(require('node:crypto').randomBytes(48).toString('hex'))"
 | `pnpm db:migrate` | Apply pending migrations |
 | `pnpm db:push` | Push schema straight to the DB (dev only) |
 | `pnpm db:seed` | Create the super admin from `SEED_SUPER_ADMIN_*` (idempotent) |
+| `pnpm db:seed:demo` | Seed a trailing 12-month Pakistani demo dataset — 3 companies, properties, tenants, leases, rent schedules, charges and payments (idempotent per company) |
 | `pnpm db:studio` | Drizzle Studio |
 
 ## Folder structure
