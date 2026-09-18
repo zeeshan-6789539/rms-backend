@@ -28,7 +28,8 @@ export class CompaniesService {
       status: dto.status,
     });
 
-    return toCompanyResponse(row);
+    // A brand new company can't have properties/tenants yet — no need to query
+    return toCompanyResponse({ ...row, propertyCount: 0, tenantCount: 0 });
   }
 
   async findAll(
@@ -52,7 +53,7 @@ export class CompaniesService {
   }
 
   async findOne(id: string): Promise<CompanyResponseDto> {
-    return toCompanyResponse(await this.findRowOrFail(id));
+    return this.toResponseWithCounts(await this.findRowOrFail(id));
   }
 
   async update(id: string, dto: UpdateCompanyDto): Promise<CompanyResponseDto> {
@@ -75,7 +76,7 @@ export class CompaniesService {
       );
     }
 
-    return toCompanyResponse(row);
+    return this.toResponseWithCounts(row);
   }
 
   // Deleting a company deactivates it: status goes false, the row is kept
@@ -96,7 +97,7 @@ export class CompaniesService {
       throw new NotFoundException(`No company was found with id ${id}`);
     }
 
-    return toCompanyResponse(row);
+    return this.toResponseWithCounts(row);
   }
 
   async restore(id: string): Promise<CompanyResponseDto> {
@@ -114,7 +115,7 @@ export class CompaniesService {
       throw new NotFoundException(`No company was found with id ${id}`);
     }
 
-    return toCompanyResponse(row);
+    return this.toResponseWithCounts(row);
   }
 
   async findRowOrFail(id: string): Promise<ICompanyRow> {
@@ -125,6 +126,19 @@ export class CompaniesService {
     }
 
     return row;
+  }
+
+  private async toResponseWithCounts(
+    row: ICompanyRow,
+  ): Promise<CompanyResponseDto> {
+    const counts = await this.companiesRepository.countsByCompanyIds([
+      row.id,
+    ]);
+
+    return toCompanyResponse({
+      ...row,
+      ...(counts.get(row.id) ?? { propertyCount: 0, tenantCount: 0 }),
+    });
   }
 
   // users.company_id is ON DELETE RESTRICT, so a live company must stay reachable

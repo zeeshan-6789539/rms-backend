@@ -1,8 +1,10 @@
-import type { ICompanyRow } from '../../../database/interfaces/i-company-row.js';
 import type { CompanyResponseDto } from '../dto/company-response.dto.js';
+import type { ICompanyWithCounts } from '../interfaces/i-company-with-counts.js';
 
 // Keeps the API shape decoupled from the table, as user.mapper does for users
-export const toCompanyResponse = (row: ICompanyRow): CompanyResponseDto => ({
+export const toCompanyResponse = (
+  row: ICompanyWithCounts,
+): CompanyResponseDto => ({
   id: row.id,
   name: row.name,
   email: row.email,
@@ -12,4 +14,6 @@ export const toCompanyResponse = (row: ICompanyRow): CompanyResponseDto => ({
   status: row.status,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
+  propertyCount: row.propertyCount,
+  tenantCount: row.tenantCount,
 });

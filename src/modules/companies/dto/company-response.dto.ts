@@ -27,4 +27,10 @@ export class CompanyResponseDto {
 
   @ApiProperty({ format: 'date-time' })
   updatedAt!: Date;
+
+  @ApiProperty({ example: 4, description: 'Number of properties belonging to this company' })
+  propertyCount!: number;
+
+  @ApiProperty({ example: 12, description: 'Number of tenants belonging to this company' })
+  tenantCount!: number;
 }

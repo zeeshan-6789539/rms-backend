@@ -1,6 +1,6 @@
-import type { ICompanyRow } from '../../../database/interfaces/i-company-row.js';
+import type { ICompanyWithCounts } from './i-company-with-counts.js';
 
 export interface ICompanyListResult {
-  items: ICompanyRow[];
+  items: ICompanyWithCounts[];
   totalItems: number;
 }
