@@ -16,8 +16,12 @@ import { DatabaseModule } from './database/database.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from './modules/auth/guards/roles.guard.js';
+import { CategoriesModule } from './modules/categories/categories.module.js';
 import { CompaniesModule } from './modules/companies/companies.module.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { OrdersModule } from './modules/orders/orders.module.js';
+import { ProductsModule } from './modules/products/products.module.js';
+import { SubcategoriesModule } from './modules/subcategories/subcategories.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 
 @Module({
@@ -58,6 +62,10 @@ import { UsersModule } from './modules/users/users.module.js';
     AuthModule,
     UsersModule,
     CompaniesModule,
+    CategoriesModule,
+    SubcategoriesModule,
+    ProductsModule,
+    OrdersModule,
     HealthModule,
   ],
   providers: [
