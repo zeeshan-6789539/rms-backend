@@ -1,10 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, count, desc, eq, gte, lt, sql } from 'drizzle-orm';
+import { DashboardTrendRange } from '../../common/enums/dashboard-trend-range.enum.js';
 import { LeaseStatus } from '../../common/enums/lease-status.enum.js';
+import { OUTSTANDING_BALANCE_SQL } from '../../common/utils/outstanding-balance.util.js';
 import { DRIZZLE } from '../../database/database.constants.js';
 import type { IDrizzleDb } from '../../database/interfaces/i-drizzle-db.js';
 import { leases, payments, properties, tenants } from '../../database/schema/index.js';
-import { DASHBOARD_RECENT_PAYMENTS_LIMIT, DASHBOARD_TREND_MONTHS } from './dashboard.constants.js';
+import {
+  DASHBOARD_OUTSTANDING_LEASES_LIMIT,
+  DASHBOARD_RECENT_PAYMENTS_LIMIT,
+  DASHBOARD_TREND_RANGE_MONTHS,
+} from './dashboard.constants.js';
 import type { IRawDashboardStats } from './interfaces/i-raw-dashboard-stats.js';
 
 const toDateString = (date: Date): string => date.toISOString().slice(0, 10);
@@ -13,23 +19,27 @@ const toDateString = (date: Date): string => date.toISOString().slice(0, 10);
 export class DashboardRepository {
   constructor(@Inject(DRIZZLE) private readonly db: IDrizzleDb) {}
 
-  async getStats(companyId: string): Promise<IRawDashboardStats> {
+  async getStats(companyId: string, trendRange: DashboardTrendRange): Promise<IRawDashboardStats> {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const trendStart = new Date(now.getFullYear(), now.getMonth() - (DASHBOARD_TREND_MONTHS - 1), 1);
+    const trendMonths = DASHBOARD_TREND_RANGE_MONTHS[trendRange];
+    // 'all' has no lower bound — trendMonths is undefined so the trend query is unfiltered by date
+    const trendStart = trendMonths
+      ? new Date(now.getFullYear(), now.getMonth() - (trendMonths - 1), 1)
+      : undefined;
 
     const [
       tenantsTotalRows,
       activeTenantsTotalRows,
       propertiesTotalRows,
-      leaseStatusBreakdown,
+      activeLeasesTotalRows,
       propertyStatusBreakdown,
       thisMonthRows,
       lastMonthRows,
-      paymentMethodBreakdown,
       paymentsTrendRows,
       recentPayments,
+      outstandingLeases,
     ] = await Promise.all([
       this.db.select({ total: count() }).from(tenants).where(eq(tenants.companyId, companyId)),
       this.db
@@ -38,10 +48,9 @@ export class DashboardRepository {
         .where(and(eq(tenants.companyId, companyId), eq(tenants.status, true))),
       this.db.select({ total: count() }).from(properties).where(eq(properties.companyId, companyId)),
       this.db
-        .select({ status: leases.status, count: count() })
+        .select({ total: count() })
         .from(leases)
-        .where(eq(leases.companyId, companyId))
-        .groupBy(leases.status),
+        .where(and(eq(leases.companyId, companyId), eq(leases.status, LeaseStatus.ACTIVE))),
       this.db
         .select({ status: properties.status, count: count() })
         .from(properties)
@@ -63,20 +72,15 @@ export class DashboardRepository {
         ),
       this.db
         .select({
-          method: payments.paymentMethod,
-          count: count(),
-          total: sql<string>`coalesce(sum(${payments.amountPaid}), 0)`,
-        })
-        .from(payments)
-        .where(eq(payments.companyId, companyId))
-        .groupBy(payments.paymentMethod),
-      this.db
-        .select({
           month: sql<string>`to_char(${payments.paymentDate}, 'YYYY-MM')`,
           total: sql<string>`coalesce(sum(${payments.amountPaid}), 0)`,
         })
         .from(payments)
-        .where(and(eq(payments.companyId, companyId), gte(payments.paymentDate, toDateString(trendStart))))
+        .where(
+          trendStart
+            ? and(eq(payments.companyId, companyId), gte(payments.paymentDate, toDateString(trendStart)))
+            : eq(payments.companyId, companyId),
+        )
         .groupBy(sql`to_char(${payments.paymentDate}, 'YYYY-MM')`),
       this.db
         .select({
@@ -93,24 +97,34 @@ export class DashboardRepository {
         .where(eq(payments.companyId, companyId))
         .orderBy(desc(payments.paymentDate), desc(payments.createdAt))
         .limit(DASHBOARD_RECENT_PAYMENTS_LIMIT),
+      this.db
+        .select({
+          id: leases.id,
+          propertyName: properties.name,
+          tenantName: tenants.name,
+          status: leases.status,
+          outstandingBalance: OUTSTANDING_BALANCE_SQL,
+        })
+        .from(leases)
+        .innerJoin(properties, eq(leases.propertyId, properties.id))
+        .innerJoin(tenants, eq(leases.tenantId, tenants.id))
+        .where(and(eq(leases.companyId, companyId), sql`${OUTSTANDING_BALANCE_SQL} > 0`))
+        .orderBy(sql`${OUTSTANDING_BALANCE_SQL} desc`)
+        .limit(DASHBOARD_OUTSTANDING_LEASES_LIMIT),
     ]);
-
-    const activeLeasesTotal =
-      leaseStatusBreakdown.find((row) => row.status === LeaseStatus.ACTIVE)?.count ?? 0;
 
     return {
       tenantsTotal: tenantsTotalRows[0]?.total ?? 0,
       activeTenantsTotal: activeTenantsTotalRows[0]?.total ?? 0,
       propertiesTotal: propertiesTotalRows[0]?.total ?? 0,
-      activeLeasesTotal,
+      activeLeasesTotal: activeLeasesTotalRows[0]?.total ?? 0,
       paymentsThisMonthCount: thisMonthRows[0]?.count ?? 0,
       paymentsThisMonthTotal: thisMonthRows[0]?.total ?? '0.00',
       paymentsLastMonthTotal: lastMonthRows[0]?.total ?? '0.00',
-      leaseStatusBreakdown,
       propertyStatusBreakdown,
-      paymentMethodBreakdown,
       paymentsTrendRows,
       recentPayments,
+      outstandingLeases,
     };
   }
 }

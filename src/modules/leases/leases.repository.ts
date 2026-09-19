@@ -1,11 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, count, desc, eq, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, type SQL } from 'drizzle-orm';
 import { ChargeType } from '../../common/enums/charge-type.enum.js';
 import { LeaseStatus } from '../../common/enums/lease-status.enum.js';
 import { SortOrder } from '../../common/enums/sort-order.enum.js';
 import { TransactionType } from '../../common/enums/transaction-type.enum.js';
 import { withDatabaseErrors } from '../../common/utils/database-error.util.js';
 import { getOffset } from '../../common/utils/pagination.util.js';
+import { OUTSTANDING_BALANCE_SQL } from '../../common/utils/outstanding-balance.util.js';
 import { buildSearchCondition } from '../../common/utils/query.util.js';
 import { DRIZZLE } from '../../database/database.constants.js';
 import type { IDrizzleDb } from '../../database/interfaces/i-drizzle-db.js';
@@ -15,7 +16,6 @@ import {
   charges,
   leaseRentSchedules,
   leases,
-  payments,
   properties,
   tenants,
 } from '../../database/schema/index.js';
@@ -25,18 +25,6 @@ import type { ILeaseListResult } from './interfaces/i-lease-list-result.js';
 import { LEASE_CONSTRAINT_MESSAGES } from './leases.constants.js';
 
 const SEARCHABLE_COLUMNS = [properties.name, tenants.name];
-
-// Replaces the prototype's trigger-maintained leases.current_balance column —
-// this repo has no migration files, so the balance is computed at read time instead.
-const OUTSTANDING_BALANCE_SQL = sql<string>`(
-  COALESCE((
-    SELECT SUM(CASE WHEN ${charges.transactionType} = 'debit' THEN ${charges.amount} ELSE -${charges.amount} END)
-    FROM ${charges}
-    WHERE ${charges.leaseId} = ${leases.id}
-  ), 0)
-  -
-  COALESCE((SELECT SUM(${payments.amountPaid}) FROM ${payments} WHERE ${payments.leaseId} = ${leases.id}), 0)
-)::numeric(10, 2)`;
 
 interface IUpdateRentParams {
   companyId: string;

@@ -9,9 +9,7 @@ export interface IRawDashboardStats {
   paymentsThisMonthCount: number;
   paymentsThisMonthTotal: string;
   paymentsLastMonthTotal: string;
-  leaseStatusBreakdown: { status: LeaseStatus; count: number }[];
   propertyStatusBreakdown: { status: boolean; count: number }[];
-  paymentMethodBreakdown: { method: PaymentMethod; count: number; total: string }[];
   paymentsTrendRows: { month: string; total: string }[];
   recentPayments: {
     id: string;
@@ -20,5 +18,12 @@ export interface IRawDashboardStats {
     paymentMethod: PaymentMethod;
     tenantName: string;
     propertyName: string;
+  }[];
+  outstandingLeases: {
+    id: string;
+    propertyName: string;
+    tenantName: string;
+    status: LeaseStatus;
+    outstandingBalance: string;
   }[];
 }

@@ -7,6 +7,8 @@ export class DashboardTotalsDto {
   @ApiProperty() activeTenants!: number;
   @ApiProperty() properties!: number;
   @ApiProperty() activeLeases!: number;
+  @ApiProperty({ description: 'Properties with a currently active lease' })
+  assignedProperties!: number;
   @ApiProperty() paymentsThisMonthCount!: number;
   @ApiProperty({ example: '150000.00' }) paymentsThisMonthTotal!: string;
   @ApiProperty({ example: '120000.00' }) paymentsLastMonthTotal!: string;
@@ -17,20 +19,9 @@ export class DashboardTrendPointDto {
   @ApiProperty({ example: '150000.00' }) total!: string;
 }
 
-export class DashboardLeaseStatusBreakdownDto {
-  @ApiProperty({ enum: LeaseStatus }) status!: LeaseStatus;
-  @ApiProperty() count!: number;
-}
-
 export class DashboardPropertyStatusBreakdownDto {
   @ApiProperty() status!: boolean;
   @ApiProperty() count!: number;
-}
-
-export class DashboardPaymentMethodBreakdownDto {
-  @ApiProperty({ enum: PaymentMethod }) method!: PaymentMethod;
-  @ApiProperty() count!: number;
-  @ApiProperty({ example: '150000.00' }) total!: string;
 }
 
 export class DashboardRecentPaymentDto {
@@ -42,22 +33,27 @@ export class DashboardRecentPaymentDto {
   @ApiProperty({ example: 'Sunset Apartments' }) propertyName!: string;
 }
 
+export class DashboardOutstandingLeaseDto {
+  @ApiProperty({ format: 'uuid' }) id!: string;
+  @ApiProperty({ example: 'Sunset Apartments' }) propertyName!: string;
+  @ApiProperty({ example: 'Ali Raza' }) tenantName!: string;
+  @ApiProperty({ enum: LeaseStatus }) status!: LeaseStatus;
+  @ApiProperty({ example: '15000.00' }) outstandingBalance!: string;
+}
+
 export class DashboardStatsResponseDto {
   @ApiProperty({ type: DashboardTotalsDto })
   totals!: DashboardTotalsDto;
 
-  @ApiProperty({ type: [DashboardTrendPointDto], description: 'Last 6 months of payments, oldest first' })
+  @ApiProperty({ type: [DashboardTrendPointDto], description: 'Payments trend, oldest first' })
   paymentsTrend!: DashboardTrendPointDto[];
-
-  @ApiProperty({ type: [DashboardLeaseStatusBreakdownDto] })
-  leaseStatusBreakdown!: DashboardLeaseStatusBreakdownDto[];
 
   @ApiProperty({ type: [DashboardPropertyStatusBreakdownDto] })
   propertyStatusBreakdown!: DashboardPropertyStatusBreakdownDto[];
 
-  @ApiProperty({ type: [DashboardPaymentMethodBreakdownDto] })
-  paymentMethodBreakdown!: DashboardPaymentMethodBreakdownDto[];
-
   @ApiProperty({ type: [DashboardRecentPaymentDto] })
   recentPayments!: DashboardRecentPaymentDto[];
+
+  @ApiProperty({ type: [DashboardOutstandingLeaseDto], description: 'Active leases with a remaining balance, highest first' })
+  outstandingLeases!: DashboardOutstandingLeaseDto[];
 }
