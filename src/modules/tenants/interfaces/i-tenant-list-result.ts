@@ -1,6 +1,6 @@
-import type { ITenantRow } from '../../../database/interfaces/i-tenant-row.js';
+import type { ITenantListRow } from './i-tenant-list-row.js';
 
 export interface ITenantListResult {
-  items: ITenantRow[];
+  items: ITenantListRow[];
   totalItems: number;
 }

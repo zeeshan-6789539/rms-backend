@@ -5,9 +5,10 @@ import { normalizeEmail } from '../../common/utils/string.util.js';
 import type { ITenantRow } from '../../database/interfaces/i-tenant-row.js';
 import type { CreateTenantDto } from './dto/create-tenant.dto.js';
 import type { QueryTenantsDto } from './dto/query-tenants.dto.js';
+import type { TenantListResponseDto } from './dto/tenant-list-response.dto.js';
 import type { TenantResponseDto } from './dto/tenant-response.dto.js';
 import type { UpdateTenantDto } from './dto/update-tenant.dto.js';
-import { toTenantResponse } from './mappers/tenant.mapper.js';
+import { toTenantListResponse, toTenantResponse } from './mappers/tenant.mapper.js';
 import { TenantsRepository } from './tenants.repository.js';
 
 @Injectable()
@@ -32,7 +33,7 @@ export class TenantsService {
   async findAll(
     companyId: string,
     query: QueryTenantsDto,
-  ): Promise<IPaginatedResult<TenantResponseDto>> {
+  ): Promise<IPaginatedResult<TenantListResponseDto>> {
     const { items, totalItems } = await this.tenantsRepository.findMany({
       companyId,
       page: query.page,
@@ -43,7 +44,7 @@ export class TenantsService {
     });
 
     return buildPaginatedResult(
-      items.map(toTenantResponse),
+      items.map(toTenantListResponse),
       totalItems,
       query.page,
       query.limit,

@@ -1,6 +1,6 @@
-import type { IPropertyRow } from '../../../database/interfaces/i-property-row.js';
+import type { IPropertyListRow } from './i-property-list-row.js';
 
 export interface IPropertyListResult {
-  items: IPropertyRow[];
+  items: IPropertyListRow[];
   totalItems: number;
 }

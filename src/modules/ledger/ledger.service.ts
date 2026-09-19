@@ -85,22 +85,18 @@ export class LedgerService {
     return this.findOne(companyId, inserted.id);
   }
 
-  async generateMonthlyRent(
-    companyId: string,
-    userId: string,
-  ): Promise<GenerateMonthlyRentResponseDto> {
+  // Platform-wide: super_admin only, covers every company's active leases in one run
+  async generateMonthlyRent(userId: string): Promise<GenerateMonthlyRentResponseDto> {
     const billingMonth = this.currentBillingMonth();
     const monthLabel = this.billingMonthLabel(billingMonth);
 
-    const activeLeases = await this.ledgerRepository.findActiveLeasesForBilling(companyId);
-    const alreadyGeneratedLeaseIds = await this.ledgerRepository.findGeneratedLeaseIds(
-      companyId,
-      billingMonth,
-    );
+    const activeLeases = await this.ledgerRepository.findActiveLeasesForBilling();
+    const alreadyGeneratedLeaseIds = await this.ledgerRepository.findGeneratedLeaseIds(billingMonth);
 
     const skipped: ISkippedLease[] = [];
     const dueLeases: Array<{
       leaseId: string;
+      companyId: string;
       propertyId: string;
       tenantId: string;
       propertyName: string;
@@ -132,7 +128,7 @@ export class LedgerService {
 
     const insertedRows = await this.ledgerRepository.insertMonthlyRentCharges(
       dueLeases.map((lease) => ({
-        companyId,
+        companyId: lease.companyId,
         propertyId: lease.propertyId,
         tenantId: lease.tenantId,
         leaseId: lease.leaseId,

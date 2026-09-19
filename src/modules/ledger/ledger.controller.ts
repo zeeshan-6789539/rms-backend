@@ -13,7 +13,7 @@ import { LedgerEntryResponseDto } from './dto/ledger-entry-response.dto.js';
 import { QueryLedgerDto } from './dto/query-ledger.dto.js';
 import { LedgerService } from './ledger.service.js';
 
-// Every route here is client_admin only — the ledger is scoped to the caller's company
+// Company-scoped routes here are client_admin only; generate-monthly-rent overrides to super_admin
 @ApiTags('Ledger')
 @ApiBearerAuth()
 @Roles(UserRole.CLIENT_ADMIN)
@@ -56,15 +56,17 @@ export class LedgerController {
     return this.ledgerService.findOne(companyId, params.id);
   }
 
+  // super_admin only — overrides the class-level restriction, since this run spans every company
   @Post('generate-monthly-rent')
+  @Roles(UserRole.SUPER_ADMIN)
   @ResponseMessage('Monthly rent charges generated successfully')
   @ApiOperation({
-    summary: 'Generate this month\'s rent charge for every active lease that is missing one',
+    summary:
+      'Generate this month\'s rent charge for every active lease across all companies that is missing one (super_admin only)',
   })
   generateMonthlyRent(
-    @CurrentCompanyId() companyId: string,
     @CurrentUser('id') userId: string,
   ): Promise<GenerateMonthlyRentResponseDto> {
-    return this.ledgerService.generateMonthlyRent(companyId, userId);
+    return this.ledgerService.generateMonthlyRent(userId);
   }
 }

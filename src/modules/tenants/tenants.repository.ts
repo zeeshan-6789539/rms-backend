@@ -1,6 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, count, desc, eq, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, getTableColumns, sql, type SQL } from 'drizzle-orm';
+import { LeaseStatus } from '../../common/enums/lease-status.enum.js';
 import { SortOrder } from '../../common/enums/sort-order.enum.js';
+import type { IAssignedEntity } from '../../common/interfaces/i-assigned-entity.js';
 import { withDatabaseErrors } from '../../common/utils/database-error.util.js';
 import { getOffset } from '../../common/utils/pagination.util.js';
 import { buildSearchCondition } from '../../common/utils/query.util.js';
@@ -10,12 +12,21 @@ import type {
   INewTenantRow,
   ITenantRow,
 } from '../../database/interfaces/i-tenant-row.js';
-import { tenants } from '../../database/schema/index.js';
+import { leases, properties, tenants } from '../../database/schema/index.js';
 import type { IFindTenantsOptions } from './interfaces/i-find-tenants-options.js';
 import type { ITenantListResult } from './interfaces/i-tenant-list-result.js';
 import { TENANT_CONSTRAINT_MESSAGES } from './tenants.constants.js';
 
 const SEARCHABLE_COLUMNS = [tenants.name, tenants.email, tenants.phone];
+
+// The property/properties this tenant currently holds an active lease on — every column below is
+// hand-qualified because leases and properties both have id/status, and sql`` renders columns bare
+const ASSIGNED_PROPERTIES_SQL = sql<IAssignedEntity[]>`COALESCE((
+  SELECT json_agg(json_build_object('id', "properties"."id", 'name', "properties"."name") ORDER BY "properties"."name")
+  FROM ${leases}
+  INNER JOIN ${properties} ON "properties"."id" = "leases"."property_id"
+  WHERE "leases"."tenant_id" = "tenants"."id" AND "leases"."status" = ${LeaseStatus.ACTIVE}
+), '[]'::json)`;
 
 @Injectable()
 export class TenantsRepository {
@@ -40,7 +51,7 @@ export class TenantsRepository {
 
     const [items, [total]] = await Promise.all([
       this.db
-        .select()
+        .select({ ...getTableColumns(tenants), properties: ASSIGNED_PROPERTIES_SQL })
         .from(tenants)
         .where(where)
         // id breaks ties so rows created in the same millisecond stay stable

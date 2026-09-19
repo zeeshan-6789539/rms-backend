@@ -19,6 +19,7 @@ import { UserRole } from '../../common/enums/user-role.enum.js';
 import type { IPaginatedResult } from '../../common/interfaces/i-paginated-result.js';
 import { CreateTenantDto } from './dto/create-tenant.dto.js';
 import { QueryTenantsDto } from './dto/query-tenants.dto.js';
+import { TenantListResponseDto } from './dto/tenant-list-response.dto.js';
 import { TenantResponseDto } from './dto/tenant-response.dto.js';
 import { UpdateTenantDto } from './dto/update-tenant.dto.js';
 import { TenantsService } from './tenants.service.js';
@@ -51,7 +52,7 @@ export class TenantsController {
   findAll(
     @CurrentCompanyId() companyId: string,
     @Query() query: QueryTenantsDto,
-  ): Promise<IPaginatedResult<TenantResponseDto>> {
+  ): Promise<IPaginatedResult<TenantListResponseDto>> {
     return this.tenantsService.findAll(companyId, query);
   }
 

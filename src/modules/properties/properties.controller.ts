@@ -18,6 +18,7 @@ import { UuidParamDto } from '../../common/dto/uuid-param.dto.js';
 import { UserRole } from '../../common/enums/user-role.enum.js';
 import type { IPaginatedResult } from '../../common/interfaces/i-paginated-result.js';
 import { CreatePropertyDto } from './dto/create-property.dto.js';
+import { PropertyListResponseDto } from './dto/property-list-response.dto.js';
 import { PropertyResponseDto } from './dto/property-response.dto.js';
 import { QueryPropertiesDto } from './dto/query-properties.dto.js';
 import { UpdatePropertyDto } from './dto/update-property.dto.js';
@@ -51,7 +52,7 @@ export class PropertiesController {
   findAll(
     @CurrentCompanyId() companyId: string,
     @Query() query: QueryPropertiesDto,
-  ): Promise<IPaginatedResult<PropertyResponseDto>> {
+  ): Promise<IPaginatedResult<PropertyListResponseDto>> {
     return this.propertiesService.findAll(companyId, query);
   }
 

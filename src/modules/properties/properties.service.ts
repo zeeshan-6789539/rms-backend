@@ -4,10 +4,11 @@ import { buildPaginatedResult } from '../../common/utils/pagination.util.js';
 import type { IPropertyRow } from '../../database/interfaces/i-property-row.js';
 import { PropertiesRepository } from './properties.repository.js';
 import type { CreatePropertyDto } from './dto/create-property.dto.js';
+import type { PropertyListResponseDto } from './dto/property-list-response.dto.js';
 import type { PropertyResponseDto } from './dto/property-response.dto.js';
 import type { QueryPropertiesDto } from './dto/query-properties.dto.js';
 import type { UpdatePropertyDto } from './dto/update-property.dto.js';
-import { toPropertyResponse } from './mappers/property.mapper.js';
+import { toPropertyListResponse, toPropertyResponse } from './mappers/property.mapper.js';
 
 @Injectable()
 export class PropertiesService {
@@ -34,7 +35,7 @@ export class PropertiesService {
   async findAll(
     companyId: string,
     query: QueryPropertiesDto,
-  ): Promise<IPaginatedResult<PropertyResponseDto>> {
+  ): Promise<IPaginatedResult<PropertyListResponseDto>> {
     const { items, totalItems } = await this.propertiesRepository.findMany({
       companyId,
       page: query.page,
@@ -46,7 +47,7 @@ export class PropertiesService {
     });
 
     return buildPaginatedResult(
-      items.map(toPropertyResponse),
+      items.map(toPropertyListResponse),
       totalItems,
       query.page,
       query.limit,

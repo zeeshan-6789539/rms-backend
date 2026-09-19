@@ -23,6 +23,7 @@ const SEARCHABLE_COLUMNS = [properties.name, tenants.name];
 
 export interface IActiveLeaseForBilling {
   leaseId: string;
+  companyId: string;
   propertyId: string;
   tenantId: string;
   propertyName: string;
@@ -147,10 +148,12 @@ export class LedgerRepository {
     }, CHARGE_CONSTRAINT_MESSAGES);
   }
 
-  async findActiveLeasesForBilling(companyId: string): Promise<IActiveLeaseForBilling[]> {
+  // No companyId filter — this billing run covers every company's active leases in one pass
+  async findActiveLeasesForBilling(): Promise<IActiveLeaseForBilling[]> {
     return this.db
       .select({
         leaseId: leases.id,
+        companyId: leases.companyId,
         propertyId: leases.propertyId,
         tenantId: leases.tenantId,
         propertyName: properties.name,
@@ -164,19 +167,15 @@ export class LedgerRepository {
         leaseRentSchedules,
         and(eq(leaseRentSchedules.leaseId, leases.id), eq(leaseRentSchedules.isCurrent, true)),
       )
-      .where(and(eq(leases.companyId, companyId), eq(leases.status, LeaseStatus.ACTIVE)));
+      .where(eq(leases.status, LeaseStatus.ACTIVE));
   }
 
-  async findGeneratedLeaseIds(companyId: string, billingMonth: string): Promise<Set<string>> {
+  async findGeneratedLeaseIds(billingMonth: string): Promise<Set<string>> {
     const rows = await this.db
       .select({ leaseId: charges.leaseId })
       .from(charges)
       .where(
-        and(
-          eq(charges.companyId, companyId),
-          eq(charges.chargeType, ChargeType.MONTHLY_RENT),
-          eq(charges.billingMonth, billingMonth),
-        ),
+        and(eq(charges.chargeType, ChargeType.MONTHLY_RENT), eq(charges.billingMonth, billingMonth)),
       );
 
     return new Set(rows.map((row) => row.leaseId));
