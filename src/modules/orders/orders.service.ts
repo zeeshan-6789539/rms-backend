@@ -81,7 +81,7 @@ export class OrdersService {
       const createdOrder = await this.ordersRepository.createOrder(tx, {
         companyId,
         userId: user.id,
-        status: OrderStatus.PENDING,
+        status: OrderStatus.PAID,
       });
 
       await this.ordersRepository.createOrderItems(

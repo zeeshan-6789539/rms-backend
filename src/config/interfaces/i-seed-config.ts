@@ -4,4 +4,5 @@ export interface ISeedConfig {
   superAdminPassword?: string;
   superAdminFirstName: string;
   superAdminLastName: string;
+  seedDemoData: boolean;
 }

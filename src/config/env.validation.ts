@@ -38,6 +38,9 @@ export const envSchema = z.object({
   SEED_SUPER_ADMIN_PASSWORD: z.string().min(8).max(128).optional(),
   SEED_SUPER_ADMIN_FIRST_NAME: z.string().min(1).max(100).default('Super'),
   SEED_SUPER_ADMIN_LAST_NAME: z.string().min(1).max(100).default('Admin'),
+
+  // Also seed a year of dummy companies/users/catalog/orders — opt-in, dev only
+  SEED_DEMO_DATA: z.stringbool().default(false),
 });
 
 // Fails fast at bootstrap with every invalid variable listed at once

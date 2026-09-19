@@ -16,7 +16,7 @@ This project uses **pnpm only** — `packageManager` is pinned in `package.json`
 pnpm install
 cp .env.example .env     # then fill in DATABASE_URL and the two JWT secrets
 pnpm db:push             # pushes src/database/schema straight to the database
-pnpm db:seed             # creates the super admin from SEED_SUPER_ADMIN_*
+pnpm db:seed             # creates the super admin from SEED_SUPER_ADMIN_*; set SEED_DEMO_DATA=true for a year of dummy data
 pnpm start:dev
 ```
 
@@ -44,7 +44,7 @@ node -e "console.log(require('node:crypto').randomBytes(48).toString('hex'))"
 | `pnpm db:generate` | Generate a migration from schema changes |
 | `pnpm db:migrate` | Apply pending migrations |
 | `pnpm db:push` | Push schema straight to the DB (dev only) |
-| `pnpm db:seed` | Create the super admin from `SEED_SUPER_ADMIN_*` (idempotent) |
+| `pnpm db:seed` | Create the super admin from `SEED_SUPER_ADMIN_*` (idempotent); with `SEED_DEMO_DATA=true`, also seeds ~1 year of dummy companies/users/catalog/orders |
 | `pnpm db:studio` | Drizzle Studio |
 
 ## Folder structure
