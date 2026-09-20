@@ -90,6 +90,7 @@ export class DashboardRepository {
           paymentMethod: payments.paymentMethod,
           tenantName: tenants.name,
           propertyName: properties.name,
+          status: payments.status,
         })
         .from(payments)
         .innerJoin(tenants, eq(payments.tenantId, tenants.id))

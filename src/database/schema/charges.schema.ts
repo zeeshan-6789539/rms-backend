@@ -1,5 +1,6 @@
 import { relations, sql } from 'drizzle-orm';
 import {
+  boolean,
   date,
   foreignKey,
   index,
@@ -47,6 +48,9 @@ export const charges = pgTable(
     billingMonth: date('billing_month'),
     dueDate: date('due_date'),
     description: text('description'),
+    // Single lifecycle flag: true is active, false is deactivated. A deactivated
+    // charge stays visible in the ledger but is excluded from running-balance calculations.
+    status: boolean('status').notNull().default(true),
     createdBy: uuid('created_by').references(() => users.id),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
@@ -57,6 +61,7 @@ export const charges = pgTable(
       table.leaseId,
       table.createdAt,
     ),
+    index('charges_status_idx').on(table.status),
     index('charges_created_at_idx').on(
       table.createdAt.desc(),
       table.id.desc(),

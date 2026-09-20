@@ -31,6 +31,7 @@ export class DashboardRecentPaymentDto {
   @ApiProperty({ enum: PaymentMethod }) paymentMethod!: PaymentMethod;
   @ApiProperty({ example: 'Ali Raza' }) tenantName!: string;
   @ApiProperty({ example: 'Sunset Apartments' }) propertyName!: string;
+  @ApiProperty() status!: boolean;
 }
 
 export class DashboardOutstandingLeaseDto {

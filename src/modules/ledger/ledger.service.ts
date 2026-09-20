@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { ChargeType } from '../../common/enums/charge-type.enum.js';
 import { SortOrder } from '../../common/enums/sort-order.enum.js';
 import { TransactionType } from '../../common/enums/transaction-type.enum.js';
 import type { IPaginatedResult } from '../../common/interfaces/i-paginated-result.js';
 import { buildPaginatedResult } from '../../common/utils/pagination.util.js';
+import type { IChargeRow } from '../../database/interfaces/i-charge-row.js';
 import { LeasesService } from '../leases/leases.service.js';
 import type { CreateLedgerEntryDto } from './dto/create-ledger-entry.dto.js';
 import type { GenerateMonthlyRentResponseDto } from './dto/generate-monthly-rent-response.dto.js';
@@ -85,6 +86,40 @@ export class LedgerService {
     return this.findOne(companyId, inserted.id);
   }
 
+  // Deactivating a charge (bill) keeps the row visible in the ledger but excludes it
+  // from running-balance calculations; status goes false, the row is kept
+  async removeCharge(companyId: string, id: string): Promise<LedgerEntryResponseDto> {
+    const current = await this.findChargeRowOrFail(companyId, id);
+
+    if (!current.status) {
+      throw new ConflictException(`Charge ${current.id} is already deactivated`);
+    }
+
+    const row = await this.ledgerRepository.setChargeStatus(id, companyId, false);
+
+    if (!row) {
+      throw new NotFoundException(`No charge was found with id ${id}`);
+    }
+
+    return this.findOne(companyId, row.id);
+  }
+
+  async restoreCharge(companyId: string, id: string): Promise<LedgerEntryResponseDto> {
+    const current = await this.findChargeRowOrFail(companyId, id);
+
+    if (current.status) {
+      throw new ConflictException(`Charge ${current.id} is already active`);
+    }
+
+    const row = await this.ledgerRepository.setChargeStatus(id, companyId, true);
+
+    if (!row) {
+      throw new NotFoundException(`No charge was found with id ${id}`);
+    }
+
+    return this.findOne(companyId, row.id);
+  }
+
   // Platform-wide: super_admin only, covers every company's active leases in one run
   async generateMonthlyRent(userId: string): Promise<GenerateMonthlyRentResponseDto> {
     const billingMonth = this.currentBillingMonth();
@@ -162,6 +197,7 @@ export class LedgerService {
         billingMonth: row.billingMonth,
         dueDate: row.dueDate,
         description: row.description,
+        status: row.status,
         createdAt: row.createdAt,
         createdBy: row.createdBy,
       });
@@ -210,7 +246,12 @@ export class LedgerService {
       let balance = 0;
 
       for (const entry of chronological) {
-        balance += entry.transactionType === TransactionType.CREDIT ? -Number(entry.amount) : Number(entry.amount);
+        // Deactivated entries stay visible but don't move the running balance
+        if (entry.status) {
+          balance +=
+            entry.transactionType === TransactionType.CREDIT ? -Number(entry.amount) : Number(entry.amount);
+        }
+
         result.push({ ...entry, runningBalance: balance.toFixed(2) });
       }
     }
@@ -240,5 +281,15 @@ export class LedgerService {
       year: 'numeric',
       timeZone: 'UTC',
     });
+  }
+
+  private async findChargeRowOrFail(companyId: string, id: string): Promise<IChargeRow> {
+    const row = await this.ledgerRepository.findChargeById(id, companyId);
+
+    if (!row) {
+      throw new NotFoundException(`No charge was found with id ${id}`);
+    }
+
+    return row;
   }
 }

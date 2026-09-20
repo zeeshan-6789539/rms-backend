@@ -52,6 +52,13 @@ export class LedgerEntryResponseDto {
   @ApiPropertyOptional({ nullable: true })
   description!: string | null;
 
+  @ApiProperty({
+    example: true,
+    description:
+      'true is active, false is deactivated. Deactivated entries stay visible in the ledger but are excluded from running-balance calculations.',
+  })
+  status!: boolean;
+
   @ApiProperty({ format: 'date-time' })
   createdAt!: Date;
 

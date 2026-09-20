@@ -19,6 +19,7 @@ export const toLedgerEntryResponse = (
   billingMonth: row.billingMonth,
   dueDate: row.dueDate,
   description: row.description,
+  status: row.status,
   createdAt: row.createdAt,
   createdBy: row.createdBy,
 });

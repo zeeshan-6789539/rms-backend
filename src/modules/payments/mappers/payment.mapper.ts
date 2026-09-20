@@ -17,6 +17,7 @@ export const toPaymentResponse = (row: IPaymentListRow): PaymentResponseDto => (
   bankName: row.bankName,
   chequeClearanceDate: row.chequeClearanceDate,
   notes: row.notes,
+  status: row.status,
   createdAt: row.createdAt,
   createdBy: row.createdBy,
 });

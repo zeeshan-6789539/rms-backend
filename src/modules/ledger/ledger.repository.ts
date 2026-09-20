@@ -55,6 +55,7 @@ export class LedgerRepository {
         billingMonth: charges.billingMonth,
         dueDate: charges.dueDate,
         description: charges.description,
+        status: charges.status,
         createdAt: charges.createdAt,
         createdBy: charges.createdBy,
         propertyName: properties.name,
@@ -86,6 +87,7 @@ export class LedgerRepository {
         dueDate: payments.paymentDate,
         referenceNumber: payments.referenceNumber,
         paymentMethod: payments.paymentMethod,
+        status: payments.status,
         createdAt: payments.createdAt,
         createdBy: payments.createdBy,
         propertyName: properties.name,
@@ -114,6 +116,7 @@ export class LedgerRepository {
         description: row.referenceNumber
           ? `Payment received (${methodLabel}) – ref ${row.referenceNumber}`
           : `Payment received (${methodLabel})`,
+        status: row.status,
         createdAt: row.createdAt,
         createdBy: row.createdBy,
         propertyName: row.propertyName,
@@ -129,6 +132,32 @@ export class LedgerRepository {
       .where(and(eq(charges.id, id), eq(charges.companyId, companyId)));
 
     return row?.leaseId;
+  }
+
+  async findChargeById(id: string, companyId: string): Promise<IChargeRow | undefined> {
+    const [row] = await this.db
+      .select()
+      .from(charges)
+      .where(and(eq(charges.id, id), eq(charges.companyId, companyId)));
+
+    return row;
+  }
+
+  // "Delete" is a status flip — the row is kept and stays visible in the ledger
+  async setChargeStatus(
+    id: string,
+    companyId: string,
+    status: boolean,
+  ): Promise<IChargeRow | undefined> {
+    return withDatabaseErrors(async () => {
+      const [row] = await this.db
+        .update(charges)
+        .set({ status })
+        .where(and(eq(charges.id, id), eq(charges.companyId, companyId)))
+        .returning();
+
+      return row;
+    }, CHARGE_CONSTRAINT_MESSAGES);
   }
 
   async findPaymentLeaseId(id: string, companyId: string): Promise<string | undefined> {

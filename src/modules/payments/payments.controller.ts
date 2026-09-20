@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentCompanyId } from '../../common/decorators/current-company-id.decorator.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
@@ -53,5 +64,31 @@ export class PaymentsController {
     @Param() params: UuidParamDto,
   ): Promise<PaymentResponseDto> {
     return this.paymentsService.findOne(companyId, params.id);
+  }
+
+  @Patch(':id/restore')
+  @ResponseMessage('Payment reactivated successfully')
+  @ApiOperation({ summary: 'Set status back to active' })
+  restore(
+    @CurrentCompanyId() companyId: string,
+    @Param() params: UuidParamDto,
+  ): Promise<PaymentResponseDto> {
+    return this.paymentsService.restore(companyId, params.id);
+  }
+
+  // 200, not 204 — a 204 carries no body, so the envelope would never arrive
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Payment deleted successfully')
+  @ApiOperation({
+    summary: 'Deactivate a payment',
+    description:
+      'Sets status to false. The row is kept and stays visible in the ledger, but is excluded from running-balance calculations.',
+  })
+  remove(
+    @CurrentCompanyId() companyId: string,
+    @Param() params: UuidParamDto,
+  ): Promise<PaymentResponseDto> {
+    return this.paymentsService.remove(companyId, params.id);
   }
 }

@@ -16,6 +16,7 @@ export interface IPaymentListRow {
   bankName: string | null;
   chequeClearanceDate: string | null;
   notes: string | null;
+  status: boolean;
   createdAt: Date;
   createdBy: string | null;
 }

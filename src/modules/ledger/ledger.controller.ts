@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentCompanyId } from '../../common/decorators/current-company-id.decorator.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
@@ -54,6 +65,32 @@ export class LedgerController {
     @Param() params: UuidParamDto,
   ): Promise<LedgerEntryResponseDto> {
     return this.ledgerService.findOne(companyId, params.id);
+  }
+
+  @Patch('charges/:id/restore')
+  @ResponseMessage('Charge reactivated successfully')
+  @ApiOperation({ summary: 'Set a charge (bill) status back to active' })
+  restoreCharge(
+    @CurrentCompanyId() companyId: string,
+    @Param() params: UuidParamDto,
+  ): Promise<LedgerEntryResponseDto> {
+    return this.ledgerService.restoreCharge(companyId, params.id);
+  }
+
+  // 200, not 204 — a 204 carries no body, so the envelope would never arrive
+  @Delete('charges/:id')
+  @HttpCode(HttpStatus.OK)
+  @ResponseMessage('Charge deleted successfully')
+  @ApiOperation({
+    summary: 'Deactivate a charge (bill)',
+    description:
+      'Sets status to false. The row is kept and stays visible in the ledger, but is excluded from running-balance calculations.',
+  })
+  removeCharge(
+    @CurrentCompanyId() companyId: string,
+    @Param() params: UuidParamDto,
+  ): Promise<LedgerEntryResponseDto> {
+    return this.ledgerService.removeCharge(companyId, params.id);
   }
 
   // super_admin only — overrides the class-level restriction, since this run spans every company

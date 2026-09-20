@@ -47,6 +47,9 @@ export class PaymentResponseDto {
   @ApiPropertyOptional({ nullable: true })
   notes!: string | null;
 
+  @ApiProperty({ example: true, description: 'true is active, false is deactivated' })
+  status!: boolean;
+
   @ApiProperty({ format: 'date-time' })
   createdAt!: Date;
 

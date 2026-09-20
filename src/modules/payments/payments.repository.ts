@@ -35,6 +35,7 @@ export class PaymentsRepository {
       bankName: payments.bankName,
       chequeClearanceDate: payments.chequeClearanceDate,
       notes: payments.notes,
+      status: payments.status,
       createdAt: payments.createdAt,
       createdBy: payments.createdBy,
     };
@@ -81,6 +82,23 @@ export class PaymentsRepository {
   async create(data: INewPaymentRow): Promise<IPaymentRow> {
     return withDatabaseErrors(async () => {
       const [row] = await this.db.insert(payments).values(data).returning();
+
+      return row;
+    }, PAYMENT_CONSTRAINT_MESSAGES);
+  }
+
+  // "Delete" is a status flip — the row is kept for audit and stays visible in the ledger
+  async setStatus(
+    id: string,
+    companyId: string,
+    status: boolean,
+  ): Promise<IPaymentRow | undefined> {
+    return withDatabaseErrors(async () => {
+      const [row] = await this.db
+        .update(payments)
+        .set({ status })
+        .where(and(eq(payments.id, id), eq(payments.companyId, companyId)))
+        .returning();
 
       return row;
     }, PAYMENT_CONSTRAINT_MESSAGES);

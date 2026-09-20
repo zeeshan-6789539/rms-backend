@@ -18,6 +18,7 @@ export interface IRawDashboardStats {
     paymentMethod: PaymentMethod;
     tenantName: string;
     propertyName: string;
+    status: boolean;
   }[];
   outstandingLeases: {
     id: string;

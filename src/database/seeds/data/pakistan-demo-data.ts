@@ -1,7 +1,7 @@
 import { UserRole } from '../../../common/enums/user-role.enum.js';
 import type { ICompanySeedPlan } from '../interfaces/i-company-seed-plan.js';
 
-export const DEMO_PASSWORD = 'Demo@12345';
+export const DEMO_PASSWORD = 'Temp@123';
 
 export const PK_BANKS = [
   'HBL',

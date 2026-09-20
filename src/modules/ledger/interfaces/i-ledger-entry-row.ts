@@ -18,6 +18,7 @@ export interface ILedgerEntryRow {
   billingMonth: string | null;
   dueDate: string | null;
   description: string | null;
+  status: boolean;
   createdAt: Date;
   createdBy: string | null;
 }
