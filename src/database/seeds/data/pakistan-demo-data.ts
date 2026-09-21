@@ -41,8 +41,6 @@ export const COMPANY_SEED_PLANS: ICompanySeedPlan[] = [
     phone: '03211234567',
     address: 'Suite 302, Sea Breeze Plaza, Block 5, Clifton',
     city: 'Karachi',
-    state: 'Sindh',
-    postalCode: '75600',
     receiptPrefix: 'AHM',
     users: [
       { firstName: 'Kamran', lastName: 'Habib', role: UserRole.CLIENT_ADMIN },
@@ -119,8 +117,6 @@ export const COMPANY_SEED_PLANS: ICompanySeedPlan[] = [
     phone: '03331234567',
     address: 'Office 14, Kalma Chowk Tower, Gulberg III',
     city: 'Lahore',
-    state: 'Punjab',
-    postalCode: '54000',
     receiptPrefix: 'FPC',
     users: [
       { firstName: 'Ayesha', lastName: 'Malik', role: UserRole.CLIENT_ADMIN },
@@ -197,8 +193,6 @@ export const COMPANY_SEED_PLANS: ICompanySeedPlan[] = [
     phone: '03451234567',
     address: 'Plaza 7, Fazl-e-Haq Road, Blue Area',
     city: 'Islamabad',
-    state: 'Islamabad Capital Territory',
-    postalCode: '44000',
     receiptPrefix: 'MGR',
     users: [
       { firstName: 'Farhan', lastName: 'Qureshi', role: UserRole.CLIENT_ADMIN },

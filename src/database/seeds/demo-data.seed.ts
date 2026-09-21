@@ -660,11 +660,9 @@ async function seedCompany(tx: SeedTx, rng: () => number, now: Date, billingMont
       .insert(users)
       .values({
         companyId: company.id,
-        username,
         email: `${username}@${emailDomain}`,
         passwordHash: await hashSecret(DEMO_PASSWORD),
-        firstName: userPlan.firstName,
-        lastName: userPlan.lastName,
+        name: `${userPlan.firstName} ${userPlan.lastName}`,
         phone: pkPhone(rng),
         role: userPlan.role,
         status: true,

@@ -13,8 +13,6 @@ export interface ICompanySeedPlan {
   phone: string;
   address: string;
   city: string;
-  state: string;
-  postalCode: string;
   receiptPrefix: string;
   users: IUserSeedPlan[];
   properties: IPropertySeedPlan[];
