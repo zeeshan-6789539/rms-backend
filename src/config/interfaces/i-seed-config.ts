@@ -1,8 +1,6 @@
 export interface ISeedConfig {
-  superAdminUsername: string;
   superAdminEmail: string;
   superAdminPassword?: string;
-  superAdminFirstName: string;
-  superAdminLastName: string;
+  superAdminName: string;
   seedDemoData: boolean;
 }

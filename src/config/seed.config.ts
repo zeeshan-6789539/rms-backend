@@ -8,11 +8,9 @@ export const seedConfig = registerAs(SEED_CONFIG_NAMESPACE, (): ISeedConfig => {
   const env = getEnv();
 
   return {
-    superAdminUsername: env.SEED_SUPER_ADMIN_USERNAME,
     superAdminEmail: env.SEED_SUPER_ADMIN_EMAIL,
     superAdminPassword: env.SEED_SUPER_ADMIN_PASSWORD,
-    superAdminFirstName: env.SEED_SUPER_ADMIN_FIRST_NAME,
-    superAdminLastName: env.SEED_SUPER_ADMIN_LAST_NAME,
+    superAdminName: env.SEED_SUPER_ADMIN_NAME,
     seedDemoData: env.SEED_DEMO_DATA,
   };
 });

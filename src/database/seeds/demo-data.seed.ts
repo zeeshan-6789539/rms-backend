@@ -209,6 +209,57 @@ const DEMO_CATALOG: IDemoCompanyBlueprint[] = [
       },
     ],
   },
+  {
+    name: 'Sunrise Pharmacy & General Store',
+    email: 'info@sunrise-pharmacy.demo',
+    phone: '+92-61-1110004',
+    address: 'Block C, Satellite Town',
+    city: 'Multan',
+    categories: [
+      {
+        name: 'Health & Wellness',
+        subcategories: [
+          {
+            name: 'Medicines',
+            products: [
+              { name: 'Paracetamol 500mg (Strip)', sellPrice: 90, purchasePrice: 55, initialStock: 500 },
+              { name: 'Cough Syrup 100ml', sellPrice: 320, purchasePrice: 220, initialStock: 260 },
+              { name: 'Multivitamin Tablets (30pcs)', sellPrice: 780, purchasePrice: 560, initialStock: 200 },
+            ],
+          },
+          {
+            name: 'Personal Care',
+            products: [
+              { name: 'Antiseptic Liquid 500ml', sellPrice: 480, purchasePrice: 340, initialStock: 180 },
+              { name: 'Hand Sanitizer 250ml', sellPrice: 350, purchasePrice: 230, initialStock: 260 },
+              { name: 'Surgical Face Mask (50pcs)', sellPrice: 600, purchasePrice: 420, initialStock: 220 },
+            ],
+          },
+        ],
+      },
+      {
+        name: 'Household Essentials',
+        subcategories: [
+          {
+            name: 'Cleaning Supplies',
+            products: [
+              { name: 'Dishwashing Liquid 1L', sellPrice: 420, purchasePrice: 290, initialStock: 240 },
+              { name: 'Floor Cleaner 1L', sellPrice: 380, purchasePrice: 260, initialStock: 220 },
+              { name: 'Laundry Detergent 3kg', sellPrice: 1350, purchasePrice: 1050, initialStock: 150 },
+            ],
+          },
+          {
+            name: 'Baby Care',
+            products: [
+              { name: 'Baby Diapers (Pack of 40)', sellPrice: 1650, purchasePrice: 1280, initialStock: 130 },
+              { name: 'Baby Wipes (80pcs)', sellPrice: 380, purchasePrice: 260, initialStock: 210 },
+              { name: 'Baby Lotion 200ml', sellPrice: 620, purchasePrice: 440, initialStock: 160 },
+            ],
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 const STOCK_AFFECTING_STATUSES = new Set<OrderStatus>([
@@ -306,11 +357,9 @@ const buildCompanyUsers = (
     rows.push({
       id,
       companyId,
-      username: `${companySlug}.${usernameSuffix}`,
       email: `${usernameSuffix}@${companySlug}.demo`,
       passwordHash,
-      firstName: randomItem(FIRST_NAMES),
-      lastName: randomItem(LAST_NAMES),
+      name: `${randomItem(FIRST_NAMES)} ${randomItem(LAST_NAMES)}`,
       phone: `+92-3${randomInt(10, 99)}-${randomInt(1000000, 9999999)}`,
       role,
       status: true,
