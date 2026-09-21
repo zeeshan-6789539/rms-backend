@@ -29,11 +29,9 @@ export const users = pgTable(
     companyId: uuid('company_id').references(() => companies.id, {
       onDelete: 'restrict',
     }),
-    username: varchar('username', { length: 50 }).notNull(),
     email: varchar('email', { length: 255 }).notNull(),
     passwordHash: varchar('password_hash', { length: 255 }).notNull(),
-    firstName: varchar('first_name', { length: 100 }).notNull(),
-    lastName: varchar('last_name', { length: 100 }).notNull(),
+    name: varchar('name', { length: 150 }).notNull(),
     phone: varchar('phone', { length: 32 }),
     role: userRoleEnum('role').notNull().default(UserRole.STAFF),
     // Single lifecycle flag: true is active, false is deactivated. Deleting a
@@ -49,9 +47,8 @@ export const users = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => [
-    // username is the login identifier; email is intentionally non-unique
-    uniqueIndex('users_username_unique_idx').on(table.username),
-    index('users_email_idx').on(table.email),
+    // email is the login identifier and must be unique
+    uniqueIndex('users_email_unique_idx').on(table.email),
     index('users_role_idx').on(table.role),
     index('users_status_idx').on(table.status),
     // Serves the default "latest first" listing without a sort step

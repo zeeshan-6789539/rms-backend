@@ -16,24 +16,20 @@ export const seedSuperAdmin = async (
     );
   }
 
-  const existing = await usersService.findRowByUsername(
-    config.superAdminUsername,
-  );
+  const existing = await usersService.findRowByEmail(config.superAdminEmail);
 
   if (existing) {
-    logger.log(`Super admin "${config.superAdminUsername}" already exists`);
+    logger.log(`Super admin "${config.superAdminEmail}" already exists`);
     return;
   }
 
   const user = await usersService.create({
-    username: config.superAdminUsername,
     email: config.superAdminEmail,
     password: config.superAdminPassword,
-    firstName: config.superAdminFirstName,
-    lastName: config.superAdminLastName,
+    name: config.superAdminName,
     role: UserRole.SUPER_ADMIN,
     status: true,
   });
 
-  logger.log(`Created super admin "${user.username}" (${user.id})`);
+  logger.log(`Created super admin "${user.email}" (${user.id})`);
 };

@@ -18,17 +18,11 @@ export class UserResponseDto {
   })
   companyName?: string | null;
 
-  @ApiProperty({ example: 'aisha.khan' })
-  username!: string;
-
   @ApiProperty({ format: 'email' })
   email!: string;
 
-  @ApiProperty()
-  firstName!: string;
-
-  @ApiProperty()
-  lastName!: string;
+  @ApiProperty({ example: 'Aisha Khan' })
+  name!: string;
 
   @ApiPropertyOptional({ nullable: true })
   phone!: string | null;

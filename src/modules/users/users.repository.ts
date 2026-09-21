@@ -15,12 +15,7 @@ import type { IFindUsersOptions } from './interfaces/i-find-users-options.js';
 import type { IUserListResult } from './interfaces/i-user-list-result.js';
 import { USER_CONSTRAINT_MESSAGES } from './users.constants.js';
 
-const SEARCHABLE_COLUMNS = [
-  users.username,
-  users.email,
-  users.firstName,
-  users.lastName,
-];
+const SEARCHABLE_COLUMNS = [users.email, users.name];
 
 @Injectable()
 export class UsersRepository {
@@ -36,19 +31,14 @@ export class UsersRepository {
     return row;
   }
 
-  async findByUsername(username: string): Promise<IUserRow | undefined> {
+  async findByEmail(email: string): Promise<IUserRow | undefined> {
     const [row] = await this.db
       .select()
       .from(users)
-      .where(eq(users.username, username))
+      .where(eq(users.email, email))
       .limit(1);
 
     return row;
-  }
-
-  // Email is not unique, so this can legitimately return several users
-  async findAllByEmail(email: string): Promise<IUserRow[]> {
-    return this.db.select().from(users).where(eq(users.email, email));
   }
 
   async findMany(options: IFindUsersOptions): Promise<IUserListResult> {

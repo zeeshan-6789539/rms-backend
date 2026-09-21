@@ -41,11 +41,9 @@ export class AuthService {
     context: IRequestContext,
   ): Promise<AuthResponseDto> {
     const user = await this.usersService.create({
-      username: dto.username,
       email: dto.email,
       password: dto.password,
-      firstName: dto.firstName,
-      lastName: dto.lastName,
+      name: dto.name,
       phone: dto.phone,
       role: UserRole.CUSTOMER,
     });
@@ -58,12 +56,12 @@ export class AuthService {
     dto: LoginDto,
     context: IRequestContext,
   ): Promise<AuthResponseDto> {
-    const row = await this.usersService.findRowByUsername(dto.username);
+    const row = await this.usersService.findRowByEmail(dto.email);
 
     // One message for both cases, so the response cannot confirm which
-    // usernames exist
+    // emails exist
     if (!row || !(await verifySecret(row.passwordHash, dto.password))) {
-      throw new UnauthorizedException('Invalid username or password');
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     if (!row.status) {
@@ -177,7 +175,6 @@ export class AuthService {
       this.jwtService.signAsync(
         {
           sub: user.id,
-          username: user.username,
           role: user.role,
           companyId: user.companyId,
         },

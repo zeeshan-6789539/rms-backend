@@ -4,11 +4,9 @@ import { describe, expect, it } from 'vitest';
 import { CreateUserDto } from './create-user.dto.js';
 
 const baseUser = {
-  username: 'aisha.khan',
   email: 'aisha@rms.local',
   password: 'password123',
-  firstName: 'Aisha',
-  lastName: 'Khan',
+  name: 'Aisha Khan',
 };
 
 const phoneErrors = async (phone?: string) => {

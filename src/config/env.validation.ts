@@ -33,11 +33,16 @@ export const envSchema = z.object({
 
   // Consumed only by `pnpm db:seed`. Optional so the API still boots without it;
   // the seed script fails loudly when the password is missing.
-  SEED_SUPER_ADMIN_USERNAME: z.string().min(3).max(50).default('superadmin'),
   SEED_SUPER_ADMIN_EMAIL: z.email().default('superadmin@rms.local'),
   SEED_SUPER_ADMIN_PASSWORD: z.string().min(8).max(128).optional(),
-  SEED_SUPER_ADMIN_FIRST_NAME: z.string().min(1).max(100).default('Super'),
-  SEED_SUPER_ADMIN_LAST_NAME: z.string().min(1).max(100).default('Admin'),
+  SEED_SUPER_ADMIN_NAME: z.string().min(1).max(150).default('Super Admin'),
+
+  MAIL_HOST: z.string().min(1),
+  MAIL_PORT: z.coerce.number().int().positive().default(587),
+  MAIL_SECURE: z.stringbool().default(false),
+  MAIL_USER: z.string().min(1),
+  MAIL_PASSWORD: z.string().min(1),
+  MAIL_FROM: z.email().default('no-reply@rms.local'),
 });
 
 // Fails fast at bootstrap with every invalid variable listed at once

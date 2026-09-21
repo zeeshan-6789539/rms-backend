@@ -8,11 +8,9 @@ import { UserRole } from '../../common/enums/user-role.enum.js';
 import type { IPaginatedResult } from '../../common/interfaces/i-paginated-result.js';
 import { hashSecret } from '../../common/utils/hash.util.js';
 import { buildPaginatedResult } from '../../common/utils/pagination.util.js';
-import {
-  normalizeEmail,
-  normalizeUsername,
-} from '../../common/utils/string.util.js';
+import { normalizeEmail } from '../../common/utils/string.util.js';
 import type { IUserRow } from '../../database/interfaces/i-user-row.js';
+import { MailService } from '../mail/mail.service.js';
 import type { CreateUserDto } from './dto/create-user.dto.js';
 import type { QueryUsersDto } from './dto/query-users.dto.js';
 import type { UpdateUserDto } from './dto/update-user.dto.js';
@@ -22,28 +20,31 @@ import { UsersRepository } from './users.repository.js';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly usersRepository: UsersRepository) {}
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    private readonly mailService: MailService,
+  ) {}
 
   async create(dto: CreateUserDto): Promise<UserResponseDto> {
-    const username = normalizeUsername(dto.username);
+    const email = normalizeEmail(dto.email);
     const role = dto.role ?? UserRole.STAFF;
 
-    await this.assertUsernameIsAvailable(username);
+    await this.assertEmailIsAvailable(email);
     this.assertCompanyMatchesRole(role, dto.companyId);
 
     // The unique index is still the authority — the check above only buys a
     // friendlier message, and two concurrent creates can both pass it.
     const row = await this.usersRepository.create({
       companyId: dto.companyId,
-      username,
-      email: normalizeEmail(dto.email),
+      email,
       passwordHash: await hashSecret(dto.password),
-      firstName: dto.firstName,
-      lastName: dto.lastName,
+      name: dto.name,
       phone: dto.phone,
       role,
       status: dto.status,
     });
+
+    await this.mailService.sendWelcomeEmail(row.email, row.name, dto.password);
 
     return toUserResponse(row);
   }
@@ -76,10 +77,10 @@ export class UsersService {
   async update(id: string, dto: UpdateUserDto): Promise<UserResponseDto> {
     const current = await this.findRowOrFail(id);
 
-    const username = dto.username ? normalizeUsername(dto.username) : undefined;
+    const email = dto.email ? normalizeEmail(dto.email) : undefined;
 
-    if (username && username !== current.username) {
-      await this.assertUsernameIsAvailable(username, id);
+    if (email && email !== current.email) {
+      await this.assertEmailIsAvailable(email, id);
     }
 
     this.assertCompanyMatchesRole(
@@ -90,11 +91,9 @@ export class UsersService {
     // Drizzle skips undefined keys, so unset DTO fields leave the column alone
     const row = await this.usersRepository.update(id, {
       companyId: dto.companyId,
-      username,
-      email: dto.email ? normalizeEmail(dto.email) : undefined,
+      email,
       passwordHash: dto.password ? await hashSecret(dto.password) : undefined,
-      firstName: dto.firstName,
-      lastName: dto.lastName,
+      name: dto.name,
       phone: dto.phone,
       role: dto.role,
       status: dto.status,
@@ -107,6 +106,14 @@ export class UsersService {
       );
     }
 
+    if (dto.password) {
+      await this.mailService.sendPasswordChangedEmail(
+        row.email,
+        row.name,
+        dto.password,
+      );
+    }
+
     return toUserResponse(row);
   }
 
@@ -116,7 +123,7 @@ export class UsersService {
 
     if (!current.status) {
       throw new ConflictException(
-        `User ${current.username} is already deactivated`,
+        `User ${current.name} is already deactivated`,
       );
     }
 
@@ -133,7 +140,7 @@ export class UsersService {
     const current = await this.findRowOrFail(id);
 
     if (current.status) {
-      throw new ConflictException(`User ${current.username} is already active`);
+      throw new ConflictException(`User ${current.name} is already active`);
     }
 
     const row = await this.usersRepository.setStatus(id, true);
@@ -146,8 +153,8 @@ export class UsersService {
   }
 
   // Returns the raw row including passwordHash — for AuthService use only
-  async findRowByUsername(username: string): Promise<IUserRow | undefined> {
-    return this.usersRepository.findByUsername(normalizeUsername(username));
+  async findRowByEmail(email: string): Promise<IUserRow | undefined> {
+    return this.usersRepository.findByEmail(normalizeEmail(email));
   }
 
   async findRowOrFail(id: string): Promise<IUserRow> {
@@ -181,16 +188,14 @@ export class UsersService {
     }
   }
 
-  private async assertUsernameIsAvailable(
-    username: string,
+  private async assertEmailIsAvailable(
+    email: string,
     ignoreUserId?: string,
   ): Promise<void> {
-    const existing = await this.usersRepository.findByUsername(username);
+    const existing = await this.usersRepository.findByEmail(email);
 
     if (existing && existing.id !== ignoreUserId) {
-      throw new ConflictException(
-        `The username "${username}" is already taken`,
-      );
+      throw new ConflictException(`The email "${email}" is already in use`);
     }
   }
 }
