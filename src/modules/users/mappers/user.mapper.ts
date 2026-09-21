@@ -5,10 +5,8 @@ import type { UserResponseDto } from '../dto/user-response.dto.js';
 export const toUserResponse = (row: IUserRow): UserResponseDto => ({
   id: row.id,
   companyId: row.companyId,
-  username: row.username,
   email: row.email,
-  firstName: row.firstName,
-  lastName: row.lastName,
+  name: row.name,
   phone: row.phone,
   role: row.role,
   status: row.status,

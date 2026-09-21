@@ -20,7 +20,6 @@ export class MailService {
   async sendWelcomeEmail(
     to: string,
     fullName: string,
-    username: string,
     password: string,
   ): Promise<void> {
     await this.send(
@@ -29,7 +28,7 @@ export class MailService {
       `<p>Hi ${fullName},</p>
        <p>Your RMS account has been created. Here are your login details:</p>
        <ul>
-         <li><strong>Username:</strong> ${username}</li>
+         <li><strong>Email:</strong> ${to}</li>
          <li><strong>Password:</strong> ${password}</li>
        </ul>
        <p>Please sign in and change your password as soon as possible.</p>`,
@@ -39,14 +38,13 @@ export class MailService {
   async sendPasswordChangedEmail(
     to: string,
     fullName: string,
-    username: string,
     password: string,
   ): Promise<void> {
     await this.send(
       to,
       'Your RMS password has been changed',
       `<p>Hi ${fullName},</p>
-       <p>The password for your RMS account (username: <strong>${username}</strong>) was just changed. Your new password is:</p>
+       <p>The password for your RMS account (<strong>${to}</strong>) was just changed. Your new password is:</p>
        <p><strong>${password}</strong></p>
        <p>If you did not request this change, contact an administrator immediately.</p>`,
     );

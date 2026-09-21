@@ -42,7 +42,7 @@ export class UsersController {
   @ApiOperation({
     summary: 'List users, paginated and searchable (super_admin only)',
     description:
-      'Newest first by default. Filter with companyId, role and status; search matches username, email, first name and last name.',
+      'Newest first by default. Filter with companyId, role and status; search matches email and name.',
   })
   findAll(
     @Query() query: QueryUsersDto,
