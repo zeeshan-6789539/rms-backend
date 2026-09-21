@@ -38,6 +38,13 @@ export const envSchema = z.object({
   SEED_SUPER_ADMIN_PASSWORD: z.string().min(8).max(128).optional(),
   SEED_SUPER_ADMIN_FIRST_NAME: z.string().min(1).max(100).default('Super'),
   SEED_SUPER_ADMIN_LAST_NAME: z.string().min(1).max(100).default('Admin'),
+
+  MAIL_HOST: z.string().min(1),
+  MAIL_PORT: z.coerce.number().int().positive().default(587),
+  MAIL_SECURE: z.stringbool().default(false),
+  MAIL_USER: z.string().min(1),
+  MAIL_PASSWORD: z.string().min(1),
+  MAIL_FROM: z.email().default('no-reply@rms.local'),
 });
 
 // Fails fast at bootstrap with every invalid variable listed at once

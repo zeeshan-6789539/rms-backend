@@ -13,6 +13,7 @@ import {
   normalizeUsername,
 } from '../../common/utils/string.util.js';
 import type { IUserRow } from '../../database/interfaces/i-user-row.js';
+import { MailService } from '../mail/mail.service.js';
 import type { CreateUserDto } from './dto/create-user.dto.js';
 import type { QueryUsersDto } from './dto/query-users.dto.js';
 import type { UpdateUserDto } from './dto/update-user.dto.js';
@@ -22,7 +23,10 @@ import { UsersRepository } from './users.repository.js';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly usersRepository: UsersRepository) {}
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    private readonly mailService: MailService,
+  ) {}
 
   async create(dto: CreateUserDto): Promise<UserResponseDto> {
     const username = normalizeUsername(dto.username);
@@ -44,6 +48,13 @@ export class UsersService {
       role,
       status: dto.status,
     });
+
+    await this.mailService.sendWelcomeEmail(
+      row.email,
+      `${row.firstName} ${row.lastName}`,
+      row.username,
+      dto.password,
+    );
 
     return toUserResponse(row);
   }
@@ -104,6 +115,15 @@ export class UsersService {
     if (!row) {
       throw new NotFoundException(
         `No user was found with id ${id} — it may have been removed while you were editing it`,
+      );
+    }
+
+    if (dto.password) {
+      await this.mailService.sendPasswordChangedEmail(
+        row.email,
+        `${row.firstName} ${row.lastName}`,
+        row.username,
+        dto.password,
       );
     }
 
