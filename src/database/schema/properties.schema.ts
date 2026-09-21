@@ -21,10 +21,7 @@ export const properties = pgTable(
       .references(() => companies.id, { onDelete: 'restrict' }),
     name: varchar('name', { length: 255 }).notNull(),
     addressLine1: varchar('address_line1', { length: 500 }).notNull(),
-    addressLine2: varchar('address_line2', { length: 500 }),
     city: varchar('city', { length: 100 }).notNull(),
-    state: varchar('state', { length: 100 }),
-    postalCode: varchar('postal_code', { length: 20 }),
     // true is active, false is deactivated — mirrors companies.status
     status: boolean('status').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true })

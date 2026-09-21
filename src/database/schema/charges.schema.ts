@@ -71,10 +71,11 @@ export const charges = pgTable(
       table.createdAt.desc(),
       table.id.desc(),
     ),
-    // At most one monthly_rent charge per lease per billing month, closing the generate-monthly-rent duplicate-click race
+    // At most one *active* monthly_rent charge per lease per billing month, closing the generate-monthly-rent
+    // duplicate-click race. Scoped to status = true so deactivating a charge lets the next run regenerate it.
     uniqueIndex('charges_one_monthly_rent_per_lease_month_idx')
       .on(table.leaseId, table.billingMonth)
-      .where(sql`${table.chargeType} = 'monthly_rent'`),
+      .where(sql`${table.chargeType} = 'monthly_rent' and ${table.status} = true`),
     // Composite FKs pin property_id/tenant_id/lease_id to the same company_id as this charge
     foreignKey({
       columns: [table.propertyId, table.companyId],

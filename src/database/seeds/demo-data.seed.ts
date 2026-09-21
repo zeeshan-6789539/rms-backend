@@ -710,10 +710,7 @@ async function seedCompany(tx: SeedTx, rng: () => number, now: Date, billingMont
         companyId: company.id,
         name: propertyPlan.name,
         addressLine1: propertyPlan.addressLine1,
-        addressLine2: propertyPlan.addressLine2,
         city: propertyPlan.city,
-        state: propertyPlan.state,
-        postalCode: propertyPlan.postalCode,
         status: true,
       })
       .returning({ id: properties.id });

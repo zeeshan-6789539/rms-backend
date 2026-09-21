@@ -25,21 +25,37 @@ const isPostgresError = (error: unknown): error is IPostgresError =>
   'code' in error &&
   typeof (error as { code: unknown }).code === 'string';
 
+// Drizzle wraps driver errors in a DrizzleQueryError whose own message is just
+// "Failed query: ...params: ...". The real Postgres error lives on `.cause`.
+const extractPostgresError = (error: unknown): IPostgresError | undefined => {
+  if (isPostgresError(error)) {
+    return error;
+  }
+
+  if (error instanceof Error && isPostgresError(error.cause)) {
+    return error.cause;
+  }
+
+  return undefined;
+};
+
 // Turns a raw driver error into a safe, actionable HTTP exception. Callers pass
 // a constraint -> message map so each table explains its own rules.
 export const mapDatabaseError = (
   error: unknown,
   constraintMessages: Record<string, string> = {},
 ): HttpException | undefined => {
-  if (!isPostgresError(error)) {
+  const pgError = extractPostgresError(error);
+
+  if (!pgError) {
     return undefined;
   }
 
-  const named = error.constraint
-    ? constraintMessages[error.constraint]
+  const named = pgError.constraint
+    ? constraintMessages[pgError.constraint]
     : undefined;
 
-  switch (error.code) {
+  switch (pgError.code) {
     case PG_UNIQUE_VIOLATION:
       return new ConflictException(
         named ?? 'A record with these details already exists',
@@ -57,7 +73,7 @@ export const mapDatabaseError = (
 
     case PG_NOT_NULL_VIOLATION:
       return new BadRequestException(
-        named ?? `The field "${error.column ?? 'unknown'}" is required`,
+        named ?? `The field "${pgError.column ?? 'unknown'}" is required`,
       );
 
     case PG_STRING_TOO_LONG:

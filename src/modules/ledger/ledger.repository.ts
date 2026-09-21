@@ -28,6 +28,7 @@ export interface IActiveLeaseForBilling {
   tenantId: string;
   propertyName: string;
   tenantName: string;
+  tenantEmail: string | null;
   rentAmount: string | null;
 }
 
@@ -187,6 +188,7 @@ export class LedgerRepository {
         tenantId: leases.tenantId,
         propertyName: properties.name,
         tenantName: tenants.name,
+        tenantEmail: tenants.email,
         rentAmount: leaseRentSchedules.rentAmount,
       })
       .from(leases)
@@ -199,12 +201,17 @@ export class LedgerRepository {
       .where(eq(leases.status, LeaseStatus.ACTIVE));
   }
 
+  // Only an active charge counts as "generated" — a deactivated one lets the next run regenerate + resend the invoice
   async findGeneratedLeaseIds(billingMonth: string): Promise<Set<string>> {
     const rows = await this.db
       .select({ leaseId: charges.leaseId })
       .from(charges)
       .where(
-        and(eq(charges.chargeType, ChargeType.MONTHLY_RENT), eq(charges.billingMonth, billingMonth)),
+        and(
+          eq(charges.chargeType, ChargeType.MONTHLY_RENT),
+          eq(charges.billingMonth, billingMonth),
+          eq(charges.status, true),
+        ),
       );
 
     return new Set(rows.map((row) => row.leaseId));

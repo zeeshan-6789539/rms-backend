@@ -22,10 +22,7 @@ export class PropertiesService {
       companyId,
       name: dto.name.trim(),
       addressLine1: dto.addressLine1,
-      addressLine2: dto.addressLine2,
       city: dto.city,
-      state: dto.state,
-      postalCode: dto.postalCode,
       status: dto.status,
     });
 
@@ -69,10 +66,7 @@ export class PropertiesService {
     const row = await this.propertiesRepository.update(id, companyId, {
       name: dto.name?.trim(),
       addressLine1: dto.addressLine1,
-      addressLine2: dto.addressLine2,
       city: dto.city,
-      state: dto.state,
-      postalCode: dto.postalCode,
       status: dto.status,
       updatedAt: new Date(),
     });

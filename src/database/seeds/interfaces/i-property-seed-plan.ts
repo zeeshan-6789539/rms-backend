@@ -18,10 +18,7 @@ export interface IDiscountSeedPlan {
 export interface IPropertySeedPlan {
   name: string;
   addressLine1: string;
-  addressLine2?: string;
   city: string;
-  state: string;
-  postalCode: string;
   monthlyRent: number;
   // Only set when `turnover` is set — the rent charged to the incoming tenant
   secondSegmentRent?: number;

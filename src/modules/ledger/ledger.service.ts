@@ -6,6 +6,7 @@ import type { IPaginatedResult } from '../../common/interfaces/i-paginated-resul
 import { buildPaginatedResult } from '../../common/utils/pagination.util.js';
 import type { IChargeRow } from '../../database/interfaces/i-charge-row.js';
 import { LeasesService } from '../leases/leases.service.js';
+import { MailService } from '../mail/mail.service.js';
 import type { CreateLedgerEntryDto } from './dto/create-ledger-entry.dto.js';
 import type { GenerateMonthlyRentResponseDto } from './dto/generate-monthly-rent-response.dto.js';
 import type { LedgerEntryResponseDto } from './dto/ledger-entry-response.dto.js';
@@ -20,6 +21,7 @@ export class LedgerService {
   constructor(
     private readonly ledgerRepository: LedgerRepository,
     private readonly leasesService: LeasesService,
+    private readonly mailService: MailService,
   ) {}
 
   async findAll(
@@ -136,6 +138,7 @@ export class LedgerService {
       tenantId: string;
       propertyName: string;
       tenantName: string;
+      tenantEmail: string | null;
       rentAmount: string;
     }> = [];
 
@@ -177,6 +180,8 @@ export class LedgerService {
       })),
     );
 
+    await this.sendRentInvoiceEmails(insertedRows, namesByLeaseId, monthLabel);
+
     // runningBalance is left null here (an N+1 recompute per lease isn't worth it for a bulk job)
     const generated: LedgerEntryResponseDto[] = insertedRows.map((row) => {
       const lease = namesByLeaseId.get(row.leaseId);
@@ -204,6 +209,38 @@ export class LedgerService {
     });
 
     return { billingMonth, generated, skipped };
+  }
+
+  // Best-effort notification: a mail failure must never affect the billing run itself
+  private async sendRentInvoiceEmails(
+    insertedRows: IChargeRow[],
+    namesByLeaseId: Map<
+      string,
+      { propertyName: string; tenantName: string; tenantEmail: string | null }
+    >,
+    monthLabel: string,
+  ): Promise<void> {
+    const emailTasks = insertedRows.flatMap((row) => {
+      const lease = namesByLeaseId.get(row.leaseId);
+
+      if (!lease?.tenantEmail) {
+        return [];
+      }
+
+      return [
+        this.mailService.sendMonthlyRentInvoiceEmail(
+          lease.tenantEmail,
+          lease.tenantName,
+          lease.propertyName,
+          row.amount,
+          monthLabel,
+          row.description ?? `Monthly rent for ${monthLabel}`,
+          row.dueDate ?? row.billingMonth ?? this.currentBillingMonth(),
+        ),
+      ];
+    });
+
+    await Promise.all(emailTasks);
   }
 
   private async buildStatement(

@@ -19,28 +19,10 @@ export class CreatePropertyDto {
   @MaxLength(500)
   addressLine1!: string;
 
-  @ApiPropertyOptional({ example: 'Unit 4B' })
-  @IsString()
-  @MaxLength(500)
-  @IsOptional()
-  addressLine2?: string;
-
   @ApiProperty({ example: 'Karachi' })
   @IsString()
   @MaxLength(100)
   city!: string;
-
-  @ApiPropertyOptional({ example: 'Sindh' })
-  @IsString()
-  @MaxLength(100)
-  @IsOptional()
-  state?: string;
-
-  @ApiPropertyOptional({ example: '74200' })
-  @IsString()
-  @MaxLength(20)
-  @IsOptional()
-  postalCode?: string;
 
   @ApiPropertyOptional({
     default: true,

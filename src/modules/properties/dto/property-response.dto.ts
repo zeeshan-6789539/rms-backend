@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class PropertyResponseDto {
   @ApiProperty({ format: 'uuid' })
@@ -13,17 +13,8 @@ export class PropertyResponseDto {
   @ApiProperty({ example: '123 Main St' })
   addressLine1!: string;
 
-  @ApiPropertyOptional({ nullable: true })
-  addressLine2!: string | null;
-
   @ApiProperty({ example: 'Karachi' })
   city!: string;
-
-  @ApiPropertyOptional({ nullable: true })
-  state!: string | null;
-
-  @ApiPropertyOptional({ nullable: true })
-  postalCode!: string | null;
 
   @ApiProperty({ description: 'true is active, false is deactivated' })
   status!: boolean;
