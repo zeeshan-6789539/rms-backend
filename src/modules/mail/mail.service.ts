@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { createTransport, type Transporter } from 'nodemailer';
+import PQueue from 'p-queue';
 import { mailConfig } from '../../config/mail.config.js';
 import type { IMailConfig } from '../../config/interfaces/i-mail-config.js';
 import {
@@ -12,10 +13,14 @@ const SMTP_CONNECTION_TIMEOUT_MS = 10_000;
 const SMTP_GREETING_TIMEOUT_MS = 10_000;
 const SMTP_SOCKET_TIMEOUT_MS = 20_000;
 
+// Caps simultaneous SMTP connections so a bulk run (e.g. monthly rent) can't flood/throttle the mail host
+const SMTP_MAX_CONCURRENT_SENDS = 5;
+
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
   private readonly transporter: Transporter;
+  private readonly queue = new PQueue({ concurrency: SMTP_MAX_CONCURRENT_SENDS });
 
   constructor(@Inject(mailConfig.KEY) private readonly config: IMailConfig) {
     this.transporter = createTransport({
@@ -135,12 +140,14 @@ export class MailService {
   // A stalled mail server should never block the request that triggered the email
   private async send(to: string, subject: string, html: string): Promise<void> {
     try {
-      await this.transporter.sendMail({
-        from: this.config.from,
-        to,
-        subject,
-        html,
-      });
+      await this.queue.add(() =>
+        this.transporter.sendMail({
+          from: this.config.from,
+          to,
+          subject,
+          html,
+        }),
+      );
       this.logger.log(`Sent email "${subject}" to ${to}`);
     } catch (error) {
       this.logger.error(
