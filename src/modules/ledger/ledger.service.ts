@@ -1,4 +1,4 @@
-import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ChargeType } from '../../common/enums/charge-type.enum.js';
 import { SortOrder } from '../../common/enums/sort-order.enum.js';
 import { TransactionType } from '../../common/enums/transaction-type.enum.js';
@@ -20,6 +20,8 @@ import { toLedgerEntryResponse } from './mappers/ledger-entry.mapper.js';
 
 @Injectable()
 export class LedgerService {
+  private readonly logger = new Logger(LedgerService.name);
+
   constructor(
     private readonly ledgerRepository: LedgerRepository,
     private readonly leasesService: LeasesService,
@@ -183,7 +185,10 @@ export class LedgerService {
       })),
     );
 
-    await this.sendRentInvoiceEmails(insertedRows, namesByLeaseId, monthLabel);
+    // Not awaited: emails go out after the response, so the caller never waits on SMTP
+    this.sendRentInvoiceEmails(insertedRows, namesByLeaseId, monthLabel).catch((error: Error) =>
+      this.logger.error(`Rent invoice email batch failed: ${error.message}`),
+    );
 
     // runningBalance is left null here (an N+1 recompute per lease isn't worth it for a bulk job)
     const generated: LedgerEntryResponseDto[] = insertedRows.map((row) => {

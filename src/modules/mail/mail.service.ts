@@ -7,6 +7,11 @@ import {
   buildEmailTemplate,
 } from '../../common/utils/email-template.util.js';
 
+// A throttled/unreachable SMTP host must fail fast, not hang a background send indefinitely
+const SMTP_CONNECTION_TIMEOUT_MS = 10_000;
+const SMTP_GREETING_TIMEOUT_MS = 10_000;
+const SMTP_SOCKET_TIMEOUT_MS = 20_000;
+
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
@@ -18,6 +23,9 @@ export class MailService {
       port: this.config.port,
       secure: this.config.secure,
       auth: { user: this.config.user, pass: this.config.password },
+      connectionTimeout: SMTP_CONNECTION_TIMEOUT_MS,
+      greetingTimeout: SMTP_GREETING_TIMEOUT_MS,
+      socketTimeout: SMTP_SOCKET_TIMEOUT_MS,
     });
   }
 
@@ -133,6 +141,7 @@ export class MailService {
         subject,
         html,
       });
+      this.logger.log(`Sent email "${subject}" to ${to}`);
     } catch (error) {
       this.logger.error(
         `Failed to send email "${subject}" to ${to}: ${(error as Error).message}`,

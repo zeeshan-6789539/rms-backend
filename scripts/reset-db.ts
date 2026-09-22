@@ -40,6 +40,22 @@ try {
     await target.query(`truncate table ${tableList} restart identity cascade`);
     console.log(`Truncated ${tables.length} table(s): ${tables.map((t) => t.tablename).join(', ')}`);
   }
+
+  // drizzle-kit push can leave a stale, non-partial version of this index behind — repair it so deactivated charges stay re-generatable
+  if (tables.some(({ tablename }) => tablename === 'charges')) {
+    const { rows: existingIndexes } = await target.query<{ indexdef: string }>(
+      "select indexdef from pg_indexes where tablename = 'charges' and indexname = 'charges_one_monthly_rent_per_lease_month_idx'",
+    );
+    const isPartialOnStatus = existingIndexes[0]?.indexdef.includes('status = true') ?? false;
+
+    if (!isPartialOnStatus) {
+      await target.query('drop index if exists charges_one_monthly_rent_per_lease_month_idx');
+      await target.query(
+        "create unique index charges_one_monthly_rent_per_lease_month_idx on charges (lease_id, billing_month) where charge_type = 'monthly_rent' and status = true",
+      );
+      console.log('Recreated charges_one_monthly_rent_per_lease_month_idx as a partial index (status = true)');
+    }
+  }
 } finally {
   await target.end();
 }
