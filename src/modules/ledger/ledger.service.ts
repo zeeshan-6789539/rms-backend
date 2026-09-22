@@ -1,9 +1,11 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ChargeType } from '../../common/enums/charge-type.enum.js';
 import { SortOrder } from '../../common/enums/sort-order.enum.js';
 import { TransactionType } from '../../common/enums/transaction-type.enum.js';
 import type { IPaginatedResult } from '../../common/interfaces/i-paginated-result.js';
 import { buildPaginatedResult } from '../../common/utils/pagination.util.js';
+import { invoiceConfig } from '../../config/invoice.config.js';
+import type { IInvoiceConfig } from '../../config/interfaces/i-invoice-config.js';
 import type { IChargeRow } from '../../database/interfaces/i-charge-row.js';
 import { LeasesService } from '../leases/leases.service.js';
 import { MailService } from '../mail/mail.service.js';
@@ -22,6 +24,7 @@ export class LedgerService {
     private readonly ledgerRepository: LedgerRepository,
     private readonly leasesService: LeasesService,
     private readonly mailService: MailService,
+    @Inject(invoiceConfig.KEY) private readonly invoiceConfigValue: IInvoiceConfig,
   ) {}
 
   async findAll(
@@ -220,6 +223,10 @@ export class LedgerService {
     >,
     monthLabel: string,
   ): Promise<void> {
+    if (!this.invoiceConfigValue.sendEnabled) {
+      return;
+    }
+
     const emailTasks = insertedRows.flatMap((row) => {
       const lease = namesByLeaseId.get(row.leaseId);
 

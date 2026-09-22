@@ -43,6 +43,9 @@ export const envSchema = z.object({
   MAIL_USER: z.string().min(1),
   MAIL_PASSWORD: z.string().min(1),
   MAIL_FROM: z.email().default('no-reply@rms.local'),
+
+  // Toggles sending the monthly rent invoice email to tenants: 1 to send, 0 to skip
+  INVOICE_SEND: z.stringbool().default(true),
 });
 
 // Fails fast at bootstrap with every invalid variable listed at once
