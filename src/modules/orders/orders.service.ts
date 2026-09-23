@@ -18,7 +18,10 @@ import type { QueryOrdersDto } from './dto/query-orders.dto.js';
 import type { UpdateOrderStatusDto } from './dto/update-order-status.dto.js';
 import type { IOrderWithItems } from './interfaces/i-order-with-items.js';
 import { toOrderResponse } from './mappers/order.mapper.js';
-import { ORDER_STATUS_TRANSITIONS } from './orders.constants.js';
+import {
+  ORDER_STATUS_TRANSITIONS,
+  STOCK_RESTORING_CANCEL_SOURCES,
+} from './orders.constants.js';
 import { OrdersRepository } from './orders.repository.js';
 
 interface IAggregatedItem {
@@ -172,7 +175,29 @@ export class OrdersService {
       );
     }
 
-    const updated = await this.ordersRepository.updateStatus(id, dto.status);
+    const shouldRestoreStock =
+      dto.status === OrderStatus.CANCELLED &&
+      STOCK_RESTORING_CANCEL_SOURCES.has(current.status);
+
+    const updated = await this.ordersRepository.runInTransaction(async (tx) => {
+      const row = await this.ordersRepository.updateStatusInTransaction(
+        tx,
+        id,
+        dto.status,
+      );
+
+      if (row && shouldRestoreStock) {
+        for (const item of current.items) {
+          await this.productsService.incrementStockInTransaction(
+            tx,
+            item.productId,
+            item.quantity,
+          );
+        }
+      }
+
+      return row;
+    });
 
     if (!updated) {
       throw new NotFoundException(

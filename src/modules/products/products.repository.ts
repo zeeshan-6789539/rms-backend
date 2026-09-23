@@ -256,6 +256,19 @@ export class ProductsRepository {
     return result.length > 0;
   }
 
+  // Reverses decrementStock — used when a paid order is cancelled. A removed
+  // product has nothing left to restore stock onto, so a miss is a no-op.
+  async incrementStock(
+    tx: IDrizzleTransaction,
+    productId: string,
+    quantity: number,
+  ): Promise<void> {
+    await tx
+      .update(products)
+      .set({ quantity: sql`${products.quantity} + ${quantity}` })
+      .where(eq(products.id, productId));
+  }
+
   private withPriceColumns() {
     return {
       ...getTableColumns(products),

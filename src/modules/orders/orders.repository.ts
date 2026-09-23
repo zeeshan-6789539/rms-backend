@@ -73,19 +73,20 @@ export class OrdersRepository {
     return tx.insert(orderItems).values(items).returning();
   }
 
-  async updateStatus(
+  // Runs inside runInTransaction so it shares the transaction that restores
+  // stock when the new status is CANCELLED — see orders.service.ts
+  async updateStatusInTransaction(
+    tx: IDrizzleTransaction,
     id: string,
     status: OrderStatus,
   ): Promise<IOrderRow | undefined> {
-    return withDatabaseErrors(async () => {
-      const [row] = await this.db
-        .update(orders)
-        .set({ status, updatedAt: new Date() })
-        .where(eq(orders.id, id))
-        .returning();
+    const [row] = await tx
+      .update(orders)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(orders.id, id))
+      .returning();
 
-      return row;
-    }, ORDER_CONSTRAINT_MESSAGES);
+    return row;
   }
 
   async findByIdWithItems(id: string): Promise<IOrderWithItems | undefined> {

@@ -7,16 +7,13 @@ export const ORDER_CONSTRAINT_MESSAGES: Record<string, string> = {
 
 // Which statuses an order is allowed to move to from its current one
 export const ORDER_STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  [OrderStatus.PENDING]: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
-  [OrderStatus.PROCESSING]: [
-    OrderStatus.PAID,
-    OrderStatus.CANCELLED,
-    OrderStatus.FAILED,
-  ],
-  [OrderStatus.PAID]: [OrderStatus.SHIPPED, OrderStatus.REFUNDED],
-  [OrderStatus.SHIPPED]: [OrderStatus.DELIVERED, OrderStatus.REFUNDED],
-  [OrderStatus.DELIVERED]: [OrderStatus.REFUNDED],
+  [OrderStatus.PENDING]: [OrderStatus.PAID, OrderStatus.CANCELLED],
+  [OrderStatus.PAID]: [OrderStatus.PENDING, OrderStatus.CANCELLED],
   [OrderStatus.CANCELLED]: [],
-  [OrderStatus.REFUNDED]: [],
-  [OrderStatus.FAILED]: [],
 };
+
+// Statuses whose stock was decremented at checkout, so cancelling out of them
+// must restore it. Mirrors STOCK_AFFECTING_STATUSES in demo-data.seed.ts.
+export const STOCK_RESTORING_CANCEL_SOURCES = new Set<OrderStatus>([
+  OrderStatus.PAID,
+]);

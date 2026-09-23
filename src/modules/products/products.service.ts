@@ -217,6 +217,15 @@ export class ProductsService {
     return this.productsRepository.decrementStock(tx, productId, quantity);
   }
 
+  // Runs inside the orders module's status-update transaction when a paid order is cancelled
+  async incrementStockInTransaction(
+    tx: IDrizzleTransaction,
+    productId: string,
+    quantity: number,
+  ): Promise<void> {
+    return this.productsRepository.incrementStock(tx, productId, quantity);
+  }
+
   private async findOwnedRowOrFail(
     user: IAuthenticatedUser,
     id: string,

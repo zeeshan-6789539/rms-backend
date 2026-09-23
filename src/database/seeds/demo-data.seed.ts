@@ -262,40 +262,27 @@ const DEMO_CATALOG: IDemoCompanyBlueprint[] = [
   },
 ];
 
-const STOCK_AFFECTING_STATUSES = new Set<OrderStatus>([
-  OrderStatus.PAID,
-  OrderStatus.SHIPPED,
-  OrderStatus.DELIVERED,
-  OrderStatus.REFUNDED,
-]);
+const STOCK_AFFECTING_STATUSES = new Set<OrderStatus>([OrderStatus.PAID]);
 
 // An order still in its first 2 days is almost never resolved yet
 const RECENT_STATUS_WEIGHTS: IWeightedOption<OrderStatus>[] = [
-  { value: OrderStatus.PENDING, weight: 35 },
-  { value: OrderStatus.PROCESSING, weight: 35 },
-  { value: OrderStatus.PAID, weight: 20 },
+  { value: OrderStatus.PENDING, weight: 45 },
+  { value: OrderStatus.PAID, weight: 45 },
   { value: OrderStatus.CANCELLED, weight: 10 },
 ];
 
-// 2-7 days old: mostly moving through fulfillment, some drop out
+// 2-7 days old: mostly settled, some still pending
 const MID_STATUS_WEIGHTS: IWeightedOption<OrderStatus>[] = [
   { value: OrderStatus.PENDING, weight: 15 },
-  { value: OrderStatus.PROCESSING, weight: 10 },
-  { value: OrderStatus.PAID, weight: 30 },
-  { value: OrderStatus.SHIPPED, weight: 30 },
+  { value: OrderStatus.PAID, weight: 75 },
   { value: OrderStatus.CANCELLED, weight: 10 },
-  { value: OrderStatus.FAILED, weight: 5 },
 ];
 
 // Older than a week: almost everything has reached a final state
 const SETTLED_STATUS_WEIGHTS: IWeightedOption<OrderStatus>[] = [
-  { value: OrderStatus.DELIVERED, weight: 55 },
-  { value: OrderStatus.PAID, weight: 8 },
-  { value: OrderStatus.SHIPPED, weight: 8 },
+  { value: OrderStatus.PAID, weight: 85 },
   { value: OrderStatus.CANCELLED, weight: 10 },
-  { value: OrderStatus.REFUNDED, weight: 12 },
-  { value: OrderStatus.FAILED, weight: 5 },
-  { value: OrderStatus.PROCESSING, weight: 2 },
+  { value: OrderStatus.PENDING, weight: 5 },
 ];
 
 const pickOrderStatus = (ageDays: number): OrderStatus => {
