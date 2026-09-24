@@ -34,5 +34,7 @@ export const createAppLogger = (config: IAppConfig): ConsoleLogger => {
     logLevels: toNestLogLevels(config.logLevel),
     json: !isDevelopment,
     colors: isDevelopment,
+    // Vercel only attributes console.* output to a request; raw process.stdout writes are dropped
+    forceConsole: true,
   });
 };
