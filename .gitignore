@@ -33,3 +33,6 @@ Thumbs.db
 
 # Nested prototype repo — has its own .git, not part of this repo's history
 rms/
+
+.vercel
+.env*
