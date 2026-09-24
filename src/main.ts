@@ -16,6 +16,8 @@ async function bootstrap(): Promise<void> {
   const config = app.get<IAppConfig>(appConfig.KEY);
 
   app.useLogger(createAppLogger(config));
+  // Nest only auto-flushes inside the listen callback, which never fires on Vercel, so logs would stay buffered forever
+  app.flushLogs();
   app.use(createRequestLogger(['/health']));
   app.use(interopDefault(helmet)());
   app.use(compression());
