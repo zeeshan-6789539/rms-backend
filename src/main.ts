@@ -39,4 +39,5 @@ async function bootstrap(): Promise<void> {
   await app.listen(config.port);
 }
 
-await bootstrap();
+// Not awaited at top level: Vercel's launcher waits for module evaluation to finish before serving
+void bootstrap();

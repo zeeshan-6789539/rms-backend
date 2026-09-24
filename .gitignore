@@ -10,11 +10,6 @@ yarn.lock
 dist/
 *.tsbuildinfo
 
-# Environment — .env is committed as the shared dev default.
-# Machine-specific overrides go in .env.local, which wins over .env.
-.env.local
-.env.*.local
-
 # Logs
 logs/
 *.log
@@ -35,4 +30,3 @@ Thumbs.db
 rms/
 
 .vercel
-.env*
