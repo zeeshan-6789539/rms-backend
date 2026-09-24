@@ -48,4 +48,12 @@ export class CreateCompanyDto {
   @IsBoolean()
   @IsOptional()
   status?: boolean;
+
+  @ApiPropertyOptional({
+    default: false,
+    description: 'true emails the monthly rent invoice to this company\'s tenants, false skips it',
+  })
+  @IsBoolean({ message: 'invoiceMailSend must be true or false' })
+  @IsOptional()
+  invoiceMailSend?: boolean;
 }

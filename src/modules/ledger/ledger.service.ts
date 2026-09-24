@@ -1,11 +1,9 @@
-import { ConflictException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ChargeType } from '../../common/enums/charge-type.enum.js';
 import { SortOrder } from '../../common/enums/sort-order.enum.js';
 import { TransactionType } from '../../common/enums/transaction-type.enum.js';
 import type { IPaginatedResult } from '../../common/interfaces/i-paginated-result.js';
 import { buildPaginatedResult } from '../../common/utils/pagination.util.js';
-import { invoiceConfig } from '../../config/invoice.config.js';
-import type { IInvoiceConfig } from '../../config/interfaces/i-invoice-config.js';
 import type { IChargeRow } from '../../database/interfaces/i-charge-row.js';
 import { LeasesService } from '../leases/leases.service.js';
 import { MailService } from '../mail/mail.service.js';
@@ -14,6 +12,7 @@ import type { GenerateMonthlyRentResponseDto } from './dto/generate-monthly-rent
 import type { LedgerEntryResponseDto } from './dto/ledger-entry-response.dto.js';
 import type { QueryLedgerDto } from './dto/query-ledger.dto.js';
 import type { ILedgerEntryRow, ILedgerEntryWithBalance } from './interfaces/i-ledger-entry-row.js';
+import type { IDueLease } from './interfaces/i-due-lease.js';
 import type { ISkippedLease } from './interfaces/i-skipped-lease.js';
 import { LedgerRepository } from './ledger.repository.js';
 import { toLedgerEntryResponse } from './mappers/ledger-entry.mapper.js';
@@ -26,7 +25,6 @@ export class LedgerService {
     private readonly ledgerRepository: LedgerRepository,
     private readonly leasesService: LeasesService,
     private readonly mailService: MailService,
-    @Inject(invoiceConfig.KEY) private readonly invoiceConfigValue: IInvoiceConfig,
   ) {}
 
   async findAll(
@@ -136,16 +134,7 @@ export class LedgerService {
     const alreadyGeneratedLeaseIds = await this.ledgerRepository.findGeneratedLeaseIds(billingMonth);
 
     const skipped: ISkippedLease[] = [];
-    const dueLeases: Array<{
-      leaseId: string;
-      companyId: string;
-      propertyId: string;
-      tenantId: string;
-      propertyName: string;
-      tenantName: string;
-      tenantEmail: string | null;
-      rentAmount: string;
-    }> = [];
+    const dueLeases: IDueLease[] = [];
 
     for (const lease of activeLeases) {
       if (lease.rentAmount === null) {
@@ -222,20 +211,14 @@ export class LedgerService {
   // Best-effort notification: a mail failure must never affect the billing run itself
   private async sendRentInvoiceEmails(
     insertedRows: IChargeRow[],
-    namesByLeaseId: Map<
-      string,
-      { propertyName: string; tenantName: string; tenantEmail: string | null }
-    >,
+    namesByLeaseId: Map<string, IDueLease>,
     monthLabel: string,
   ): Promise<void> {
-    if (!this.invoiceConfigValue.sendEnabled) {
-      return;
-    }
-
     const emailTasks = insertedRows.flatMap((row) => {
       const lease = namesByLeaseId.get(row.leaseId);
 
-      if (!lease?.tenantEmail) {
+      // Each company opts in via companies.invoice_mail_send, set by the super admin
+      if (!lease?.invoiceMailSend || !lease.tenantEmail) {
         return [];
       }
 

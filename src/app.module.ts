@@ -8,7 +8,6 @@ import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor.js
 import { appConfig } from './config/app.config.js';
 import { databaseConfig } from './config/database.config.js';
 import { validateEnv } from './config/env.validation.js';
-import { invoiceConfig } from './config/invoice.config.js';
 import { jwtConfig } from './config/jwt.config.js';
 import { mailConfig } from './config/mail.config.js';
 import { seedConfig } from './config/seed.config.js';
@@ -35,7 +34,6 @@ import { UsersModule } from './modules/users/users.module.js';
       load: [
         appConfig,
         databaseConfig,
-        invoiceConfig,
         jwtConfig,
         mailConfig,
         seedConfig,

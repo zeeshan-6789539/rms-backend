@@ -26,6 +26,7 @@ export class CompaniesService {
       address: dto.address,
       city: dto.city,
       status: dto.status,
+      invoiceMailSend: dto.invoiceMailSend,
     });
 
     // A brand new company can't have properties/tenants yet — no need to query
@@ -67,6 +68,7 @@ export class CompaniesService {
       address: dto.address,
       city: dto.city,
       status: dto.status,
+      invoiceMailSend: dto.invoiceMailSend,
       updatedAt: new Date(),
     });
 

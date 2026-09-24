@@ -10,27 +10,18 @@ import type { IChargeRow, INewChargeRow } from '../../database/interfaces/i-char
 import type { IDrizzleDb } from '../../database/interfaces/i-drizzle-db.js';
 import {
   charges,
+  companies,
   leaseRentSchedules,
   leases,
   payments,
   properties,
   tenants,
 } from '../../database/schema/index.js';
+import type { IActiveLeaseForBilling } from './interfaces/i-active-lease-for-billing.js';
 import type { ILedgerEntryRow } from './interfaces/i-ledger-entry-row.js';
 import { CHARGE_CONSTRAINT_MESSAGES } from './ledger.constants.js';
 
 const SEARCHABLE_COLUMNS = [properties.name, tenants.name];
-
-export interface IActiveLeaseForBilling {
-  leaseId: string;
-  companyId: string;
-  propertyId: string;
-  tenantId: string;
-  propertyName: string;
-  tenantName: string;
-  tenantEmail: string | null;
-  rentAmount: string | null;
-}
 
 @Injectable()
 export class LedgerRepository {
@@ -190,8 +181,10 @@ export class LedgerRepository {
         tenantName: tenants.name,
         tenantEmail: tenants.email,
         rentAmount: leaseRentSchedules.rentAmount,
+        invoiceMailSend: companies.invoiceMailSend,
       })
       .from(leases)
+      .innerJoin(companies, eq(leases.companyId, companies.id))
       .innerJoin(properties, eq(leases.propertyId, properties.id))
       .innerJoin(tenants, eq(leases.tenantId, tenants.id))
       .leftJoin(

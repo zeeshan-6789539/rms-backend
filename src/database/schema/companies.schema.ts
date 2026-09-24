@@ -14,6 +14,8 @@ export const companies = pgTable(
     city: varchar('city', { length: 100 }),
     // true is active, false is deactivated — mirrors users.status
     status: boolean('status').notNull().default(true),
+    // Opt-in per company: the monthly rent run emails invoices only when this is true
+    invoiceMailSend: boolean('invoice_mail_send').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

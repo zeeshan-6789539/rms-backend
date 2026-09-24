@@ -12,6 +12,7 @@ export const toCompanyResponse = (
   address: row.address,
   city: row.city,
   status: row.status,
+  invoiceMailSend: row.invoiceMailSend,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
   propertyCount: row.propertyCount,

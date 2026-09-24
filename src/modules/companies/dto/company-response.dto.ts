@@ -22,6 +22,9 @@ export class CompanyResponseDto {
   @ApiProperty({ description: 'true is active, false is deactivated' })
   status!: boolean;
 
+  @ApiProperty({ description: 'true emails the monthly rent invoice to this company\'s tenants' })
+  invoiceMailSend!: boolean;
+
   @ApiProperty({ format: 'date-time' })
   createdAt!: Date;
 
