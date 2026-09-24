@@ -3,6 +3,7 @@ import { ChargeType } from '../../common/enums/charge-type.enum.js';
 import { SortOrder } from '../../common/enums/sort-order.enum.js';
 import { TransactionType } from '../../common/enums/transaction-type.enum.js';
 import type { IPaginatedResult } from '../../common/interfaces/i-paginated-result.js';
+import { runInBackground } from '../../common/utils/background.util.js';
 import { buildPaginatedResult } from '../../common/utils/pagination.util.js';
 import type { IChargeRow } from '../../database/interfaces/i-charge-row.js';
 import { LeasesService } from '../leases/leases.service.js';
@@ -174,9 +175,11 @@ export class LedgerService {
       })),
     );
 
-    // Not awaited: emails go out after the response, so the caller never waits on SMTP
-    this.sendRentInvoiceEmails(insertedRows, namesByLeaseId, monthLabel).catch((error: Error) =>
-      this.logger.error(`Rent invoice email batch failed: ${error.message}`),
+    // Not awaited: emails go out after the response; runInBackground keeps Vercel alive until they finish
+    runInBackground(
+      this.sendRentInvoiceEmails(insertedRows, namesByLeaseId, monthLabel).catch((error: Error) =>
+        this.logger.error(`Rent invoice email batch failed: ${error.message}`),
+      ),
     );
 
     // runningBalance is left null here (an N+1 recompute per lease isn't worth it for a bulk job)
