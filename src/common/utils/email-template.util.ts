@@ -1,5 +1,7 @@
 import type { IEmailTemplateOptions } from '../interfaces/i-email-template-options.js';
 
+const POWERED_BY_TEXT = 'Powered by MIFA Alliance';
+
 // Shared modern HTML wrapper so every transactional email looks consistent
 export function buildEmailTemplate(options: IEmailTemplateOptions): string {
   const { title, greetingName, bodyHtml, footerNote } = options;
@@ -33,6 +35,7 @@ export function buildEmailTemplate(options: IEmailTemplateOptions): string {
               </td>
             </tr>
           </table>
+          <p style="margin:16px 0 0;color:#98a2b3;font-size:12px;text-align:center;">${POWERED_BY_TEXT}</p>
         </td>
       </tr>
     </table>
