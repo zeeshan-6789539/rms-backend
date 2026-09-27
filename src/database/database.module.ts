@@ -12,7 +12,11 @@ import pg from 'pg';
 import { redactConnectionUrl } from '../common/utils/url.util.js';
 import { databaseConfig } from '../config/database.config.js';
 import type { IDatabaseConfig } from '../config/interfaces/i-database-config.js';
-import { DRIZZLE, PG_POOL } from './database.constants.js';
+import {
+  DRIZZLE,
+  PG_CONNECTION_TIMEOUT_MS,
+  PG_POOL,
+} from './database.constants.js';
 import type { IDrizzleDb } from './interfaces/i-drizzle-db.js';
 import * as schema from './schema/index.js';
 
@@ -29,6 +33,7 @@ const { Pool } = pg;
         new Pool({
           connectionString: config.url,
           max: config.poolMax,
+          connectionTimeoutMillis: PG_CONNECTION_TIMEOUT_MS,
           ssl: config.ssl ? { rejectUnauthorized: false } : undefined,
           // Forces now(), date_trunc and CURRENT_DATE to resolve in UTC.
           // Behind PgBouncer, allow "timezone" in ignore_startup_parameters.
