@@ -8,6 +8,9 @@ import {
   buildEmailButton,
   buildEmailTemplate,
 } from '../../common/utils/email-template.util.js';
+import { decryptSecret } from '../../common/utils/encryption.util.js';
+import type { IMailSender } from './interfaces/i-mail-sender.js';
+import { MailRepository } from './mail.repository.js';
 
 // A throttled/unreachable SMTP host must fail fast, not hang a background send indefinitely
 const SMTP_CONNECTION_TIMEOUT_MS = 10_000;
@@ -20,22 +23,44 @@ const SMTP_MAX_CONCURRENT_SENDS = 5;
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private readonly transporter: Transporter;
   private readonly queue = new PQueue({ concurrency: SMTP_MAX_CONCURRENT_SENDS });
 
-  constructor(@Inject(mailConfig.KEY) private readonly config: IMailConfig) {
-    this.transporter = createTransport({
-      host: this.config.host,
-      port: this.config.port,
-      secure: this.config.secure,
-      auth: { user: this.config.user, pass: this.config.password },
-      connectionTimeout: SMTP_CONNECTION_TIMEOUT_MS,
-      greetingTimeout: SMTP_GREETING_TIMEOUT_MS,
-      socketTimeout: SMTP_SOCKET_TIMEOUT_MS,
-    });
+  constructor(
+    @Inject(mailConfig.KEY) private readonly config: IMailConfig,
+    private readonly mailRepository: MailRepository,
+  ) {}
+
+  // No company (super admin) sends from the env account; otherwise the company's own email and password
+  async resolveSender(companyId: string | null): Promise<IMailSender | null> {
+    if (!companyId) {
+      return { user: this.config.user, password: this.config.password, from: this.config.from };
+    }
+
+    try {
+      const company = await this.mailRepository.findCompanyCredentials(companyId);
+
+      if (!company?.email || !company.mailPassword) {
+        this.logger.warn(
+          `Company "${company?.name ?? companyId}" has no email or mail password set — skipping its emails. Set both on the company to enable them.`,
+        );
+        return null;
+      }
+
+      return {
+        user: company.email,
+        password: decryptSecret(company.mailPassword, this.config.encryptionKey),
+        from: company.email,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Could not load mail credentials for company ${companyId}: ${(error as Error).message}. Re-save the company's mail password if MAIL_ENCRYPTION_KEY changed.`,
+      );
+      return null;
+    }
   }
 
   async sendWelcomeEmail(
+    sender: IMailSender | null,
     to: string,
     fullName: string,
     password: string,
@@ -49,6 +74,7 @@ export class MailService {
       <p style="margin:0;color:#475467;font-size:14px;line-height:22px;">Please sign in and change your password as soon as possible.</p>`;
 
     await this.send(
+      sender,
       to,
       'Welcome to RMS — your account details',
       buildEmailTemplate({
@@ -60,6 +86,7 @@ export class MailService {
   }
 
   async sendPasswordChangedEmail(
+    sender: IMailSender | null,
     to: string,
     fullName: string,
     password: string,
@@ -72,6 +99,7 @@ export class MailService {
       <p style="margin:0;color:#b42318;font-size:14px;line-height:22px;">If you did not request this change, contact an administrator immediately.</p>`;
 
     await this.send(
+      sender,
       to,
       'Your RMS password has been changed',
       buildEmailTemplate({
@@ -83,6 +111,7 @@ export class MailService {
   }
 
   async sendMonthlyRentInvoiceEmail(
+    sender: IMailSender | null,
     to: string,
     tenantName: string,
     propertyName: string,
@@ -130,6 +159,7 @@ export class MailService {
       <p style="margin:0;color:#475467;font-size:14px;line-height:22px;">Please make sure your payment is settled by the due date to avoid late fees.</p>`;
 
     await this.send(
+      sender,
       to,
       `Rent Invoice — ${propertyName} — ${monthLabel}`,
       buildEmailTemplate({
@@ -141,11 +171,21 @@ export class MailService {
   }
 
   // A stalled mail server should never block the request that triggered the email
-  private async send(to: string, subject: string, html: string): Promise<void> {
+  private async send(
+    sender: IMailSender | null,
+    to: string,
+    subject: string,
+    html: string,
+  ): Promise<void> {
+    // resolveSender already logged why there is no sender
+    if (!sender) {
+      return;
+    }
+
     try {
       await this.queue.add(() =>
-        this.transporter.sendMail({
-          from: this.config.from,
+        this.createTransporter(sender).sendMail({
+          from: sender.from,
           to,
           subject,
           html,
@@ -154,8 +194,21 @@ export class MailService {
       this.logger.log(`Sent email "${subject}" to ${to}`);
     } catch (error) {
       this.logger.error(
-        `Failed to send email "${subject}" to ${to}: ${(error as Error).message}`,
+        `Failed to send email "${subject}" to ${to} from ${sender.from}: ${(error as Error).message}`,
       );
     }
+  }
+
+  // Unpooled, so a transporter is just config — each sendMail opens its own connection anyway
+  private createTransporter(sender: IMailSender): Transporter {
+    return createTransport({
+      host: this.config.host,
+      port: this.config.port,
+      secure: this.config.secure,
+      auth: { user: sender.user, pass: sender.password },
+      connectionTimeout: SMTP_CONNECTION_TIMEOUT_MS,
+      greetingTimeout: SMTP_GREETING_TIMEOUT_MS,
+      socketTimeout: SMTP_SOCKET_TIMEOUT_MS,
+    });
   }
 }

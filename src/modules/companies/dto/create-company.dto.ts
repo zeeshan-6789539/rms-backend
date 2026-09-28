@@ -56,4 +56,14 @@ export class CreateCompanyDto {
   @IsBoolean({ message: 'invoiceMailSend must be true or false' })
   @IsOptional()
   invoiceMailSend?: boolean;
+
+  @ApiPropertyOptional({
+    writeOnly: true,
+    description: 'SMTP password for the company email; stored encrypted and never returned',
+  })
+  @IsString({ message: 'mailPassword must be a string' })
+  @MinLength(1, { message: 'mailPassword cannot be empty — omit it to leave the current one unchanged' })
+  @MaxLength(255, { message: 'mailPassword must be at most 255 characters' })
+  @IsOptional()
+  mailPassword?: string;
 }

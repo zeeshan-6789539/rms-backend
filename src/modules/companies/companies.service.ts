@@ -1,7 +1,10 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { IPaginatedResult } from '../../common/interfaces/i-paginated-result.js';
+import { encryptSecret } from '../../common/utils/encryption.util.js';
 import { buildPaginatedResult } from '../../common/utils/pagination.util.js';
 import { normalizeEmail } from '../../common/utils/string.util.js';
+import { mailConfig } from '../../config/mail.config.js';
+import type { IMailConfig } from '../../config/interfaces/i-mail-config.js';
 import type { ICompanyRow } from '../../database/interfaces/i-company-row.js';
 import { UsersService } from '../users/users.service.js';
 import { CompaniesRepository } from './companies.repository.js';
@@ -16,6 +19,7 @@ export class CompaniesService {
   constructor(
     private readonly companiesRepository: CompaniesRepository,
     private readonly usersService: UsersService,
+    @Inject(mailConfig.KEY) private readonly mail: IMailConfig,
   ) {}
 
   async create(dto: CreateCompanyDto): Promise<CompanyResponseDto> {
@@ -27,6 +31,7 @@ export class CompaniesService {
       city: dto.city,
       status: dto.status,
       invoiceMailSend: dto.invoiceMailSend,
+      mailPassword: this.encryptMailPassword(dto.mailPassword),
     });
 
     // A brand new company can't have properties/tenants yet — no need to query
@@ -69,6 +74,7 @@ export class CompaniesService {
       city: dto.city,
       status: dto.status,
       invoiceMailSend: dto.invoiceMailSend,
+      mailPassword: this.encryptMailPassword(dto.mailPassword),
       updatedAt: new Date(),
     });
 
@@ -128,6 +134,10 @@ export class CompaniesService {
     }
 
     return row;
+  }
+
+  private encryptMailPassword(plain: string | undefined): string | undefined {
+    return plain ? encryptSecret(plain, this.mail.encryptionKey) : undefined;
   }
 
   private async toResponseWithCounts(

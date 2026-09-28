@@ -217,17 +217,28 @@ export class LedgerService {
     namesByLeaseId: Map<string, IDueLease>,
     monthLabel: string,
   ): Promise<void> {
-    const emailTasks = insertedRows.flatMap((row) => {
+    // Each company opts in via companies.invoice_mail_send, set by the super admin
+    const invoices = insertedRows.flatMap((row) => {
       const lease = namesByLeaseId.get(row.leaseId);
 
-      // Each company opts in via companies.invoice_mail_send, set by the super admin
-      if (!lease?.invoiceMailSend || !lease.tenantEmail) {
-        return [];
-      }
+      return lease?.invoiceMailSend && lease.tenantEmail
+        ? [{ row, lease, tenantEmail: lease.tenantEmail }]
+        : [];
+    });
 
-      return [
+    // One credentials lookup per company, not per tenant
+    const companyIds = [...new Set(invoices.map(({ row }) => row.companyId))];
+    const sendersByCompanyId = new Map(
+      await Promise.all(
+        companyIds.map(async (companyId) => [companyId, await this.mailService.resolveSender(companyId)] as const),
+      ),
+    );
+
+    await Promise.all(
+      invoices.map(({ row, lease, tenantEmail }) =>
         this.mailService.sendMonthlyRentInvoiceEmail(
-          lease.tenantEmail,
+          sendersByCompanyId.get(row.companyId) ?? null,
+          tenantEmail,
           lease.tenantName,
           lease.propertyName,
           row.amount,
@@ -235,10 +246,8 @@ export class LedgerService {
           row.description ?? `Monthly rent for ${monthLabel}`,
           row.dueDate ?? row.billingMonth ?? this.currentBillingMonth(),
         ),
-      ];
-    });
-
-    await Promise.all(emailTasks);
+      ),
+    );
   }
 
   private async buildStatement(

@@ -43,6 +43,10 @@ export const envSchema = z.object({
   MAIL_USER: z.string().min(1),
   MAIL_PASSWORD: z.string().min(1),
   MAIL_FROM: z.email().default('no-reply@rms.local'),
+  // Changing it makes every stored companies.mail_password undecryptable
+  MAIL_ENCRYPTION_KEY: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/i, 'must be 64 hex characters (32 bytes) — generate one with `openssl rand -hex 32`'),
   LOGIN_PAGE_URL: z.url(),
 });
 

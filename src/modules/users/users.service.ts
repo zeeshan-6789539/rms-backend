@@ -44,7 +44,12 @@ export class UsersService {
       status: dto.status,
     });
 
-    await this.mailService.sendWelcomeEmail(row.email, row.name, dto.password);
+    await this.mailService.sendWelcomeEmail(
+      await this.mailService.resolveSender(row.companyId),
+      row.email,
+      row.name,
+      dto.password,
+    );
 
     return toUserResponse(row);
   }
@@ -108,6 +113,7 @@ export class UsersService {
 
     if (dto.password) {
       await this.mailService.sendPasswordChangedEmail(
+        await this.mailService.resolveSender(row.companyId),
         row.email,
         row.name,
         dto.password,

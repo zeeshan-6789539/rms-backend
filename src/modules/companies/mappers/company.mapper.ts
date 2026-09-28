@@ -13,6 +13,7 @@ export const toCompanyResponse = (
   city: row.city,
   status: row.status,
   invoiceMailSend: row.invoiceMailSend,
+  hasMailPassword: row.mailPassword !== null,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
   propertyCount: row.propertyCount,
