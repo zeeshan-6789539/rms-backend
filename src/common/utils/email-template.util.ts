@@ -43,6 +43,17 @@ export function buildEmailTemplate(options: IEmailTemplateOptions): string {
 </html>`;
 }
 
+export function buildEmailButton(label: string, url: string): string {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
+    <tr>
+      <td style="border-radius:8px;background:linear-gradient(135deg,#4f46e5,#7c3aed);">
+        <a href="${url}" target="_blank" rel="noopener" style="display:inline-block;padding:12px 24px;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:8px;">${label}</a>
+      </td>
+    </tr>
+  </table>
+  <p style="margin:0 0 20px;color:#667085;font-size:12px;line-height:18px;">Or open this link: <a href="${url}" target="_blank" rel="noopener" style="color:#4f46e5;word-break:break-all;">${url}</a></p>`;
+}
+
 export function buildCredentialRow(label: string, value: string): string {
   return `<tr>
     <td style="padding:10px 16px;color:#667085;font-size:13px;">${label}</td>

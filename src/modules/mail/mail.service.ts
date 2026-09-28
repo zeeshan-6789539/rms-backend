@@ -5,6 +5,7 @@ import { mailConfig } from '../../config/mail.config.js';
 import type { IMailConfig } from '../../config/interfaces/i-mail-config.js';
 import {
   buildCredentialRow,
+  buildEmailButton,
   buildEmailTemplate,
 } from '../../common/utils/email-template.util.js';
 
@@ -44,6 +45,7 @@ export class MailService {
         ${buildCredentialRow('Email', to)}
         ${buildCredentialRow('Password', password)}
       </table>
+      ${buildEmailButton('Sign in to RMS', this.config.loginPageUrl)}
       <p style="margin:0;color:#475467;font-size:14px;line-height:22px;">Please sign in and change your password as soon as possible.</p>`;
 
     await this.send(
@@ -66,6 +68,7 @@ export class MailService {
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eaecf0;border-radius:8px;overflow:hidden;margin-bottom:20px;">
         ${buildCredentialRow('Password', password)}
       </table>
+      ${buildEmailButton('Sign in to RMS', this.config.loginPageUrl)}
       <p style="margin:0;color:#b42318;font-size:14px;line-height:22px;">If you did not request this change, contact an administrator immediately.</p>`;
 
     await this.send(

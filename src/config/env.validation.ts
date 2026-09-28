@@ -43,6 +43,7 @@ export const envSchema = z.object({
   MAIL_USER: z.string().min(1),
   MAIL_PASSWORD: z.string().min(1),
   MAIL_FROM: z.email().default('no-reply@rms.local'),
+  LOGIN_PAGE_URL: z.url(),
 });
 
 // Fails fast at bootstrap with every invalid variable listed at once
