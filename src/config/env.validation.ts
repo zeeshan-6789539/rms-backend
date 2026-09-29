@@ -47,7 +47,7 @@ export const envSchema = z.object({
   MAIL_ENCRYPTION_KEY: z
     .string()
     .regex(/^[0-9a-f]{64}$/i, 'must be 64 hex characters (32 bytes) — generate one with `openssl rand -hex 32`'),
-  LOGIN_PAGE_URL: z.url(),
+  FRONTEND_URL: z.url(),
 });
 
 // Fails fast at bootstrap with every invalid variable listed at once

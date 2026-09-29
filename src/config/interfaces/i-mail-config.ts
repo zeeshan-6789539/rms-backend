@@ -6,5 +6,5 @@ export interface IMailConfig {
   password: string;
   from: string;
   encryptionKey: string;
-  loginPageUrl: string;
+  frontendUrl: string;
 }
