@@ -138,8 +138,8 @@ export class LeasesService {
     }
 
     const description = currentSchedule
-      ? `Rent changed from ${Number(currentSchedule.rentAmount).toFixed(2)} to ${Number(dto.rentAmount).toFixed(2)}, effective ${dto.effectiveFrom}`
-      : `Rent set to ${Number(dto.rentAmount).toFixed(2)}, effective ${dto.effectiveFrom}`;
+      ? `Rent changed from ${Number(currentSchedule.rentAmount)} to ${Number(dto.rentAmount)}, effective ${dto.effectiveFrom}`
+      : `Rent set to ${Number(dto.rentAmount)}, effective ${dto.effectiveFrom}`;
 
     await this.leasesRepository.updateRentWithChargeEntry({
       companyId,
