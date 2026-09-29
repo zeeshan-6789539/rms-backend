@@ -181,6 +181,7 @@ export class LedgerRepository {
         tenantName: tenants.name,
         tenantEmail: tenants.email,
         rentAmount: leaseRentSchedules.rentAmount,
+        rentDueDay: properties.rentDueDay,
         invoiceMailSend: companies.invoiceMailSend,
       })
       .from(leases)

@@ -4,6 +4,7 @@ import { SortOrder } from '../../common/enums/sort-order.enum.js';
 import { TransactionType } from '../../common/enums/transaction-type.enum.js';
 import type { IPaginatedResult } from '../../common/interfaces/i-paginated-result.js';
 import { runInBackground } from '../../common/utils/background.util.js';
+import { withDayOfMonth } from '../../common/utils/date.util.js';
 import { buildPaginatedResult } from '../../common/utils/pagination.util.js';
 import type { IChargeRow } from '../../database/interfaces/i-charge-row.js';
 import { LeasesService } from '../leases/leases.service.js';
@@ -169,7 +170,7 @@ export class LedgerService {
         transactionType: TransactionType.DEBIT,
         amount: lease.rentAmount,
         billingMonth,
-        dueDate: billingMonth,
+        dueDate: withDayOfMonth(billingMonth, lease.rentDueDay),
         description: `Monthly rent for ${monthLabel}`,
         createdBy: userId,
       })),

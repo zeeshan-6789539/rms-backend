@@ -1,3 +1,5 @@
+import type { PropertyType } from '../../../common/enums/property-type.enum.js';
+
 export interface IRentChangeSeedPlan {
   atIndex: number;
   newRent: number;
@@ -19,6 +21,7 @@ export interface IPropertySeedPlan {
   name: string;
   addressLine1: string;
   city: string;
+  propertyType: PropertyType;
   monthlyRent: number;
   // Only set when `turnover` is set — the rent charged to the incoming tenant
   secondSegmentRent?: number;

@@ -7,5 +7,6 @@ export interface IActiveLeaseForBilling {
   tenantName: string;
   tenantEmail: string | null;
   rentAmount: string | null;
+  rentDueDay: number;
   invoiceMailSend: boolean;
 }

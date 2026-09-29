@@ -23,6 +23,8 @@ export class PropertiesService {
       name: dto.name.trim(),
       addressLine1: dto.addressLine1,
       city: dto.city,
+      propertyType: dto.propertyType,
+      rentDueDay: dto.rentDueDay,
       status: dto.status,
     });
 
@@ -39,6 +41,7 @@ export class PropertiesService {
       limit: query.limit,
       search: query.search,
       city: query.city,
+      propertyType: query.propertyType,
       status: query.status,
       sortOrder: query.sortOrder,
     });
@@ -67,6 +70,8 @@ export class PropertiesService {
       name: dto.name?.trim(),
       addressLine1: dto.addressLine1,
       city: dto.city,
+      propertyType: dto.propertyType,
+      rentDueDay: dto.rentDueDay,
       status: dto.status,
       updatedAt: new Date(),
     });

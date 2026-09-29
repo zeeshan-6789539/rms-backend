@@ -30,6 +30,8 @@ import type { IPropertySeedPlan } from './interfaces/i-property-seed-plan.js';
 const MONTHS_OF_HISTORY = 12;
 // Fixed so re-seeding a fresh database always reproduces the same story
 const RNG_SEED = 20260918;
+// Every seeded property bills rent on the 5th
+const SEED_RENT_DUE_DAY = 5;
 
 type ChargeInsert = typeof charges.$inferInsert;
 type PaymentInsert = typeof payments.$inferInsert;
@@ -268,7 +270,7 @@ interface ISeedMonthParams {
 function seedMonthForLease(params: ISeedMonthParams): void {
   const { rng, now, monthStart, isRecent, companyId, propertyId, tenantId, leaseId, rentAmount, isProblemTenant, createdBy, receiptPrefix, nextReceiptSeq, chargeRows, paymentRows } = params;
   const label = monthLabel(monthStart);
-  const rentDueDate = addDaysUtc(monthStart, 4);
+  const rentDueDate = addDaysUtc(monthStart, SEED_RENT_DUE_DAY - 1);
 
   chargeRows.push({
     companyId,
@@ -711,6 +713,8 @@ async function seedCompany(tx: SeedTx, rng: () => number, now: Date, billingMont
         name: propertyPlan.name,
         addressLine1: propertyPlan.addressLine1,
         city: propertyPlan.city,
+        propertyType: propertyPlan.propertyType,
+        rentDueDay: SEED_RENT_DUE_DAY,
         status: true,
       })
       .returning({ id: properties.id });

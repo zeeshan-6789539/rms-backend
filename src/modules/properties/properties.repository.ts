@@ -112,6 +112,10 @@ export class PropertiesRepository {
       conditions.push(eq(properties.city, options.city));
     }
 
+    if (options.propertyType) {
+      conditions.push(eq(properties.propertyType, options.propertyType));
+    }
+
     if (options.status !== undefined) {
       conditions.push(eq(properties.status, options.status));
     }

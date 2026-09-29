@@ -1,16 +1,30 @@
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
   index,
+  pgEnum,
   pgTable,
+  smallint,
   timestamp,
   unique,
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
+import {
+  DEFAULT_RENT_DUE_DAY,
+  MAX_RENT_DUE_DAY,
+  MIN_RENT_DUE_DAY,
+} from '../../common/constants/rent-due-day.constants.js';
+import { PropertyType } from '../../common/enums/property-type.enum.js';
 import { uuidv7 } from '../../common/utils/uuid.util.js';
 import { companies } from './companies.schema.js';
 import { leases } from './leases.schema.js';
+
+export const propertyTypeEnum = pgEnum(
+  'property_type',
+  Object.values(PropertyType) as [PropertyType, ...PropertyType[]],
+);
 
 export const properties = pgTable(
   'properties',
@@ -22,6 +36,11 @@ export const properties = pgTable(
     name: varchar('name', { length: 255 }).notNull(),
     addressLine1: varchar('address_line1', { length: 500 }).notNull(),
     city: varchar('city', { length: 100 }).notNull(),
+    propertyType: propertyTypeEnum('property_type')
+      .notNull()
+      .default(PropertyType.HOME),
+    // Day of the month the generated monthly rent invoice falls due
+    rentDueDay: smallint('rent_due_day').notNull().default(DEFAULT_RENT_DUE_DAY),
     // true is active, false is deactivated — mirrors companies.status
     status: boolean('status').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true })
@@ -46,6 +65,10 @@ export const properties = pgTable(
     ),
     // Lets leases/charges/payments composite-FK pin a row to this same company
     unique('properties_id_company_id_key').on(table.id, table.companyId),
+    check(
+      'properties_rent_due_day_range_check',
+      sql`${table.rentDueDay} between ${sql.raw(String(MIN_RENT_DUE_DAY))} and ${sql.raw(String(MAX_RENT_DUE_DAY))}`,
+    ),
   ],
 );
 

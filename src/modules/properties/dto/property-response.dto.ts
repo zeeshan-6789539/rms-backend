@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { PropertyType } from '../../../common/enums/property-type.enum.js';
 
 export class PropertyResponseDto {
   @ApiProperty({ format: 'uuid' })
@@ -15,6 +16,12 @@ export class PropertyResponseDto {
 
   @ApiProperty({ example: 'Karachi' })
   city!: string;
+
+  @ApiProperty({ enum: PropertyType, example: PropertyType.HOME })
+  propertyType!: PropertyType;
+
+  @ApiProperty({ example: 5, description: 'Day of the month the monthly rent invoice falls due' })
+  rentDueDay!: number;
 
   @ApiProperty({ description: 'true is active, false is deactivated' })
   status!: boolean;
