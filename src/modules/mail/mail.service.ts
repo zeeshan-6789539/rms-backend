@@ -20,6 +20,9 @@ const SMTP_SOCKET_TIMEOUT_MS = 20_000;
 // Caps simultaneous SMTP connections so a bulk run (e.g. monthly rent) can't flood/throttle the mail host
 const SMTP_MAX_CONCURRENT_SENDS = 5;
 
+// Shown as the sender for super admin mail so recipients don't see the env account's personal address
+const SUPER_ADMIN_SENDER_NAME = 'MIFA Alliance';
+
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
@@ -30,10 +33,20 @@ export class MailService {
     private readonly mailRepository: MailRepository,
   ) {}
 
-  // No company (super admin) sends from the env account; otherwise the company's own email and password
+  // The env account, used for anything the super admin triggers
+  getPlatformSender(): IMailSender {
+    return {
+      user: this.config.user,
+      password: this.config.password,
+      from: this.config.from,
+      name: SUPER_ADMIN_SENDER_NAME,
+    };
+  }
+
+  // No company sends from the env account; otherwise the company's own email and password
   async resolveSender(companyId: string | null): Promise<IMailSender | null> {
     if (!companyId) {
-      return { user: this.config.user, password: this.config.password, from: this.config.from };
+      return this.getPlatformSender();
     }
 
     try {
@@ -50,6 +63,7 @@ export class MailService {
         user: company.email,
         password: decryptSecret(company.mailPassword, this.config.encryptionKey),
         from: company.email,
+        name: company.name,
       };
     } catch (error) {
       this.logger.error(
@@ -187,7 +201,7 @@ export class MailService {
     try {
       await this.queue.add(() =>
         this.createTransporter(sender).sendMail({
-          from: sender.from,
+          from: { name: sender.name, address: sender.from },
           to,
           subject,
           html,

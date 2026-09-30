@@ -44,8 +44,9 @@ export class UsersService {
       status: dto.status,
     });
 
+    // Only the super admin manages users, so its mail always goes from the env account
     await this.mailService.sendWelcomeEmail(
-      await this.mailService.resolveSender(row.companyId),
+      this.mailService.getPlatformSender(),
       row.email,
       row.name,
       dto.password,
@@ -113,7 +114,7 @@ export class UsersService {
 
     if (dto.password) {
       await this.mailService.sendPasswordChangedEmail(
-        await this.mailService.resolveSender(row.companyId),
+        this.mailService.getPlatformSender(),
         row.email,
         row.name,
         dto.password,
