@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsOptional, IsUUID } from 'class-validator';
+import { IsDateString, IsOptional, IsUrl, IsUUID, MaxLength } from 'class-validator';
 import { IsMoneyString } from '../../../common/decorators/is-money-string.decorator.js';
 
 export class CreateLeaseDto {
@@ -27,4 +27,16 @@ export class CreateLeaseDto {
   @IsMoneyString()
   @IsOptional()
   advanceAmount?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://drive.google.com/file/d/abc123/view',
+    description: 'Link to the signed lease document (Google Drive or any other storage)',
+  })
+  @IsUrl(
+    { protocols: ['http', 'https'], require_protocol: true },
+    { message: 'documentUrl must be a full http(s) link, e.g. https://drive.google.com/...' },
+  )
+  @MaxLength(2048, { message: 'documentUrl must be at most 2048 characters' })
+  @IsOptional()
+  documentUrl?: string;
 }

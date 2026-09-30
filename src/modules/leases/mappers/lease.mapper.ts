@@ -12,6 +12,7 @@ export const toLeaseResponse = (row: ILeaseListRow): LeaseResponseDto => ({
   startDate: row.startDate,
   endDate: row.endDate,
   advanceAmount: row.advanceAmount,
+  documentUrl: row.documentUrl,
   currentRent: row.currentRent,
   outstandingBalance: row.outstandingBalance,
   createdAt: row.createdAt,

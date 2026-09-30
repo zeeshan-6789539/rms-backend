@@ -5,5 +5,6 @@ export interface ICreateLeaseData {
   startDate: string;
   endDate: string;
   advanceAmount: string;
+  documentUrl: string | null;
   monthlyRent: string;
 }

@@ -6,6 +6,7 @@ import {
   numeric,
   pgEnum,
   pgTable,
+  text,
   timestamp,
   unique,
   uniqueIndex,
@@ -40,6 +41,7 @@ export const leases = pgTable(
     advanceAmount: numeric('advance_amount', { precision: 10, scale: 2 })
       .notNull()
       .default('0.00'),
+    documentUrl: text('document_url'),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsOptional } from 'class-validator';
+import { IsDateString, IsOptional, IsUrl, MaxLength } from 'class-validator';
 import { IsMoneyString } from '../../../common/decorators/is-money-string.decorator.js';
 
 // Not PartialType(CreateLeaseDto) — propertyId/tenantId are set at creation and
@@ -19,4 +19,17 @@ export class UpdateLeaseDto {
   @IsMoneyString()
   @IsOptional()
   advanceAmount?: string;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    example: 'https://drive.google.com/file/d/abc123/view',
+    description: 'Send null to remove the document link',
+  })
+  @IsUrl(
+    { protocols: ['http', 'https'], require_protocol: true },
+    { message: 'documentUrl must be a full http(s) link, e.g. https://drive.google.com/...' },
+  )
+  @MaxLength(2048, { message: 'documentUrl must be at most 2048 characters' })
+  @IsOptional()
+  documentUrl?: string | null;
 }

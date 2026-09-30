@@ -13,6 +13,7 @@ export interface ILeaseListRow {
   startDate: string;
   endDate: string;
   advanceAmount: string;
+  documentUrl: string | null;
   currentRent: string | null;
   outstandingBalance: string;
   createdAt: Date;

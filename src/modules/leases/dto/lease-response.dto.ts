@@ -32,6 +32,9 @@ export class LeaseResponseDto {
   @ApiProperty({ example: '100000.00' })
   advanceAmount!: string;
 
+  @ApiPropertyOptional({ nullable: true, example: 'https://drive.google.com/file/d/abc123/view' })
+  documentUrl!: string | null;
+
   @ApiPropertyOptional({ nullable: true, example: '50000.00' })
   currentRent!: string | null;
 

@@ -55,6 +55,7 @@ export class LeasesRepository {
       startDate: leases.startDate,
       endDate: leases.endDate,
       advanceAmount: leases.advanceAmount,
+      documentUrl: leases.documentUrl,
       currentRent: leaseRentSchedules.rentAmount,
       outstandingBalance: OUTSTANDING_BALANCE_SQL,
       createdAt: leases.createdAt,
@@ -155,6 +156,7 @@ export class LeasesRepository {
             startDate: data.startDate,
             endDate: data.endDate,
             advanceAmount: data.advanceAmount,
+            documentUrl: data.documentUrl,
           })
           .returning();
 
@@ -178,7 +180,13 @@ export class LeasesRepository {
   async update(
     id: string,
     companyId: string,
-    data: { startDate?: string; endDate?: string; advanceAmount?: string; updatedAt: Date },
+    data: {
+      startDate?: string;
+      endDate?: string;
+      advanceAmount?: string;
+      documentUrl?: string | null;
+      updatedAt: Date;
+    },
   ): Promise<ILeaseRow | undefined> {
     return withDatabaseErrors(async () => {
       const [row] = await this.db

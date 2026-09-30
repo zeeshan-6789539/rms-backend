@@ -43,6 +43,7 @@ export class LeasesService {
       startDate: dto.startDate,
       endDate: dto.endDate,
       advanceAmount: dto.advanceAmount ?? '0.00',
+      documentUrl: dto.documentUrl ?? null,
       monthlyRent: dto.monthlyRent,
     });
 
@@ -88,6 +89,7 @@ export class LeasesService {
       startDate: dto.startDate,
       endDate: dto.endDate,
       advanceAmount: dto.advanceAmount,
+      documentUrl: dto.documentUrl,
       updatedAt: new Date(),
     });
 
