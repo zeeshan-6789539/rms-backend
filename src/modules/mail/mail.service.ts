@@ -115,6 +115,7 @@ export class MailService {
     to: string,
     tenantName: string,
     propertyName: string,
+    propertyNumber: string,
     amount: string,
     monthLabel: string,
     description: string,
@@ -134,6 +135,7 @@ export class MailService {
     const bodyHtml = `<p style="margin:0 0 20px;color:#475467;font-size:14px;line-height:22px;">Your rent invoice for <strong>${monthLabel}</strong> has been generated. Here are the details:</p>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eaecf0;border-radius:8px;overflow:hidden;margin-bottom:20px;">
         ${buildCredentialRow('Property', propertyName)}
+        ${buildCredentialRow('Property No.', propertyNumber)}
         ${buildCredentialRow('Billing Period', monthLabel)}
       </table>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eaecf0;border-radius:8px;overflow:hidden;margin-bottom:20px;">

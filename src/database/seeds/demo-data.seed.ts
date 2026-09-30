@@ -5,6 +5,8 @@ import { LeaseStatus } from '../../common/enums/lease-status.enum.js';
 import { PaymentMethod } from '../../common/enums/payment-method.enum.js';
 import { TransactionType } from '../../common/enums/transaction-type.enum.js';
 import { hashSecret } from '../../common/utils/hash.util.js';
+import { formatSequenceCode } from '../../common/utils/string.util.js';
+import { PROPERTY_NUMBER_PREFIX } from '../../modules/properties/properties.constants.js';
 import type { IDrizzleDb } from '../interfaces/i-drizzle-db.js';
 import {
   charges,
@@ -464,6 +466,11 @@ async function seedPropertyLeases(params: ISeedLeasesParams): Promise<number> {
     const isFinalSegment = segment.endIdx === lastIndex;
     const endDate = isFinalSegment ? addMonthsUtc(startDate, 12) : lastDayOfMonthUtc(billingMonths[segment.endIdx]);
     const advanceAmount = segment.rent * propertyPlan.advanceMultiplier;
+    // Deterministic, not rng-drawn, so adding it leaves every other seeded value unchanged
+    const hasDocument = segment.status === LeaseStatus.ACTIVE && !propertyPlan.problemTenant;
+    const documentUrl = hasDocument
+      ? `https://drive.google.com/file/d/demo-${slugifyName(propertyPlan.name)}-${toDateString(startDate)}/view`
+      : null;
 
     const [lease] = await tx
       .insert(leases)
@@ -475,6 +482,7 @@ async function seedPropertyLeases(params: ISeedLeasesParams): Promise<number> {
         startDate: toDateString(startDate),
         endDate: toDateString(endDate),
         advanceAmount: money(advanceAmount),
+        documentUrl,
       })
       .returning({ id: leases.id });
 
@@ -646,6 +654,8 @@ async function seedCompany(tx: SeedTx, rng: () => number, now: Date, billingMont
       address: plan.address,
       city: plan.city,
       status: true,
+      // Seeded properties take 1..n below, so the app continues from n + 1
+      nextPropertyNumber: plan.properties.length + 1,
     })
     .returning();
 
@@ -705,11 +715,12 @@ async function seedCompany(tx: SeedTx, rng: () => number, now: Date, billingMont
   const paymentRows: PaymentInsert[] = [];
   let receiptSeq = 1;
 
-  for (const propertyPlan of plan.properties) {
+  for (const [index, propertyPlan] of plan.properties.entries()) {
     const [property] = await tx
       .insert(properties)
       .values({
         companyId: company.id,
+        propertyNumber: formatSequenceCode(PROPERTY_NUMBER_PREFIX, index + 1),
         name: propertyPlan.name,
         addressLine1: propertyPlan.addressLine1,
         city: propertyPlan.city,

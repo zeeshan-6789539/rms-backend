@@ -177,6 +177,7 @@ export class LedgerRepository {
         companyId: leases.companyId,
         propertyId: leases.propertyId,
         tenantId: leases.tenantId,
+        propertyNumber: properties.propertyNumber,
         propertyName: properties.name,
         tenantName: tenants.name,
         tenantEmail: tenants.email,

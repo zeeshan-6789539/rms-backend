@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { and, asc, count, desc, eq, getTableColumns, sql, type SQL } from 'drizzle-orm';
 import { LeaseStatus } from '../../common/enums/lease-status.enum.js';
 import { SortOrder } from '../../common/enums/sort-order.enum.js';
@@ -6,18 +6,22 @@ import type { IAssignedEntity } from '../../common/interfaces/i-assigned-entity.
 import { withDatabaseErrors } from '../../common/utils/database-error.util.js';
 import { getOffset } from '../../common/utils/pagination.util.js';
 import { buildSearchCondition } from '../../common/utils/query.util.js';
+import { formatSequenceCode } from '../../common/utils/string.util.js';
 import { DRIZZLE } from '../../database/database.constants.js';
 import type { IDrizzleDb } from '../../database/interfaces/i-drizzle-db.js';
 import type {
   INewPropertyRow,
   IPropertyRow,
 } from '../../database/interfaces/i-property-row.js';
-import { leases, properties, tenants } from '../../database/schema/index.js';
-import { PROPERTY_CONSTRAINT_MESSAGES } from './properties.constants.js';
+import { companies, leases, properties, tenants } from '../../database/schema/index.js';
+import {
+  PROPERTY_CONSTRAINT_MESSAGES,
+  PROPERTY_NUMBER_PREFIX,
+} from './properties.constants.js';
 import type { IFindPropertiesOptions } from './interfaces/i-find-properties-options.js';
 import type { IPropertyListResult } from './interfaces/i-property-list-result.js';
 
-const SEARCHABLE_COLUMNS = [properties.name, properties.city];
+const SEARCHABLE_COLUMNS = [properties.propertyNumber, properties.name, properties.city];
 
 // The tenant(s) with an active lease on this property — every column below is hand-qualified
 // because leases and tenants both have id/status, and sql`` interpolation renders columns bare
@@ -64,11 +68,34 @@ export class PropertiesRepository {
     return { items, totalItems: total?.value ?? 0 };
   }
 
-  async create(data: INewPropertyRow): Promise<IPropertyRow> {
+  // The counter UPDATE row-locks the company, so concurrent creates queue up and each gets its own number
+  async create(data: Omit<INewPropertyRow, 'propertyNumber'>): Promise<IPropertyRow> {
     return withDatabaseErrors(async () => {
-      const [row] = await this.db.insert(properties).values(data).returning();
+      return this.db.transaction(async (tx) => {
+        const [counter] = await tx
+          .update(companies)
+          .set({ nextPropertyNumber: sql`${companies.nextPropertyNumber} + 1` })
+          .where(eq(companies.id, data.companyId))
+          .returning({ issued: sql<number>`${companies.nextPropertyNumber} - 1` });
 
-      return row;
+        if (!counter) {
+          throw new NotFoundException(`No company was found with id ${data.companyId}`);
+        }
+
+        const [row] = await tx
+          .insert(properties)
+          .values({
+            ...data,
+            propertyNumber: formatSequenceCode(PROPERTY_NUMBER_PREFIX, counter.issued),
+          })
+          .returning();
+
+        if (!row) {
+          throw new Error('Failed to create property');
+        }
+
+        return row;
+      });
     }, PROPERTY_CONSTRAINT_MESSAGES);
   }
 

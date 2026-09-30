@@ -33,6 +33,8 @@ export const properties = pgTable(
     companyId: uuid('company_id')
       .notNull()
       .references(() => companies.id, { onDelete: 'restrict' }),
+    // Human-readable id (P-0001), issued from companies.next_property_number and never changed
+    propertyNumber: varchar('property_number', { length: 20 }).notNull(),
     name: varchar('name', { length: 255 }).notNull(),
     addressLine1: varchar('address_line1', { length: 500 }).notNull(),
     city: varchar('city', { length: 100 }).notNull(),
@@ -65,6 +67,10 @@ export const properties = pgTable(
     ),
     // Lets leases/charges/payments composite-FK pin a row to this same company
     unique('properties_id_company_id_key').on(table.id, table.companyId),
+    unique('properties_company_id_property_number_key').on(
+      table.companyId,
+      table.propertyNumber,
+    ),
     check(
       'properties_rent_due_day_range_check',
       sql`${table.rentDueDay} between ${sql.raw(String(MIN_RENT_DUE_DAY))} and ${sql.raw(String(MAX_RENT_DUE_DAY))}`,

@@ -24,7 +24,7 @@ import type { IFindLeasesOptions } from './interfaces/i-find-leases-options.js';
 import type { ILeaseListResult } from './interfaces/i-lease-list-result.js';
 import { LEASE_CONSTRAINT_MESSAGES } from './leases.constants.js';
 
-const SEARCHABLE_COLUMNS = [properties.name, tenants.name];
+const SEARCHABLE_COLUMNS = [properties.propertyNumber, properties.name, tenants.name];
 
 interface IUpdateRentParams {
   companyId: string;
@@ -49,6 +49,7 @@ export class LeasesRepository {
       companyId: leases.companyId,
       propertyId: leases.propertyId,
       tenantId: leases.tenantId,
+      propertyNumber: properties.propertyNumber,
       propertyName: properties.name,
       tenantName: tenants.name,
       status: leases.status,

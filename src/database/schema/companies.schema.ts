@@ -1,5 +1,14 @@
 import { relations } from 'drizzle-orm';
-import { boolean, index, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core';
 import { uuidv7 } from '../../common/utils/uuid.util.js';
 import { users } from './users.schema.js';
 
@@ -18,6 +27,8 @@ export const companies = pgTable(
     invoiceMailSend: boolean('invoice_mail_send').notNull().default(false),
     // AES-256-GCM ciphertext of the SMTP password for `email`; never returned by the API
     mailPassword: text('mail_password'),
+    // Next sequence value handed out as this company's property number (P-0001, P-0002, …)
+    nextPropertyNumber: integer('next_property_number').notNull().default(1),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

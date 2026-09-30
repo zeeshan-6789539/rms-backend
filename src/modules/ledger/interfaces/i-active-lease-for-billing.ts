@@ -3,6 +3,7 @@ export interface IActiveLeaseForBilling {
   companyId: string;
   propertyId: string;
   tenantId: string;
+  propertyNumber: string;
   propertyName: string;
   tenantName: string;
   tenantEmail: string | null;

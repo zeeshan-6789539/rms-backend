@@ -7,6 +7,7 @@ export interface ILeaseListRow {
   companyId: string;
   propertyId: string;
   tenantId: string;
+  propertyNumber: string;
   propertyName: string;
   tenantName: string;
   status: LeaseStatus;

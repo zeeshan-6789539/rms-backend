@@ -242,6 +242,7 @@ export class LedgerService {
           tenantEmail,
           lease.tenantName,
           lease.propertyName,
+          lease.propertyNumber,
           row.amount,
           monthLabel,
           row.description ?? `Monthly rent for ${monthLabel}`,

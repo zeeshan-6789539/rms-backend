@@ -6,6 +6,7 @@ import type { IPropertyListRow } from '../interfaces/i-property-list-row.js';
 export const toPropertyResponse = (row: IPropertyRow): PropertyResponseDto => ({
   id: row.id,
   companyId: row.companyId,
+  propertyNumber: row.propertyNumber,
   name: row.name,
   addressLine1: row.addressLine1,
   city: row.city,
@@ -21,6 +22,7 @@ export const toPropertyListResponse = (
 ): PropertyListResponseDto => ({
   id: row.id,
   companyId: row.companyId,
+  propertyNumber: row.propertyNumber,
   name: row.name,
   addressLine1: row.addressLine1,
   city: row.city,

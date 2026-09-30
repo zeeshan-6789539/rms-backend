@@ -8,6 +8,9 @@ export class PropertyResponseDto {
   @ApiProperty({ format: 'uuid' })
   companyId!: string;
 
+  @ApiProperty({ example: 'P-0001', description: 'Unique per company, assigned on create, never changes' })
+  propertyNumber!: string;
+
   @ApiProperty({ example: 'Sunset Apartments' })
   name!: string;
 

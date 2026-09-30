@@ -6,6 +6,7 @@ export const toLeaseResponse = (row: ILeaseListRow): LeaseResponseDto => ({
   companyId: row.companyId,
   propertyId: row.propertyId,
   tenantId: row.tenantId,
+  propertyNumber: row.propertyNumber,
   propertyName: row.propertyName,
   tenantName: row.tenantName,
   status: row.status,

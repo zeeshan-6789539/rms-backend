@@ -14,6 +14,9 @@ export class LeaseResponseDto {
   @ApiProperty({ format: 'uuid' })
   tenantId!: string;
 
+  @ApiProperty({ example: 'P-0001' })
+  propertyNumber!: string;
+
   @ApiProperty({ example: 'Sunset Apartments' })
   propertyName!: string;
 
