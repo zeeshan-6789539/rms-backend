@@ -5,6 +5,7 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { RateLimitGuard } from './common/guards/rate-limit.guard.js';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor.js';
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor.js';
+import { aiConfig } from './config/ai.config.js';
 import { appConfig } from './config/app.config.js';
 import { databaseConfig } from './config/database.config.js';
 import { validateEnv } from './config/env.validation.js';
@@ -12,6 +13,7 @@ import { jwtConfig } from './config/jwt.config.js';
 import { mailConfig } from './config/mail.config.js';
 import { seedConfig } from './config/seed.config.js';
 import { DatabaseModule } from './database/database.module.js';
+import { AiModule } from './modules/ai/ai.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from './modules/auth/guards/roles.guard.js';
@@ -37,6 +39,7 @@ import { UsersModule } from './modules/users/users.module.js';
         jwtConfig,
         mailConfig,
         seedConfig,
+        aiConfig,
       ],
       envFilePath: ['.env.local', '.env'],
     }),
@@ -50,6 +53,7 @@ import { UsersModule } from './modules/users/users.module.js';
     LedgerModule,
     PaymentsModule,
     DashboardModule,
+    AiModule,
     HealthModule,
   ],
   providers: [

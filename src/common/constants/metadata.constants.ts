@@ -3,3 +3,4 @@ export const ROLES_KEY = 'rms:roles';
 export const SKIP_RESPONSE_TRANSFORM_KEY = 'rms:skipResponseTransform';
 export const RESPONSE_MESSAGE_KEY = 'rms:responseMessage';
 export const RATE_LIMIT_KEY = 'rms:rateLimit';
+export const REQUEST_TIMEOUT_KEY = 'rms:requestTimeout';

@@ -48,6 +48,10 @@ export const envSchema = z.object({
     .string()
     .regex(/^[0-9a-f]{64}$/i, 'must be 64 hex characters (32 bytes) — generate one with `openssl rand -hex 32`'),
   FRONTEND_URL: z.url(),
+
+  // Optional so the API boots without AI; POST /ai/chat answers 503 until it is set
+  GOOGLE_STUDIO_KEY: z.string().min(1).optional(),
+  GEMINI_MODEL: z.string().min(1).default('gemini-flash-lite-latest'),
 });
 
 // Fails fast at bootstrap with every invalid variable listed at once

@@ -30,6 +30,7 @@ flowchart LR
   API -->|Drizzle / pg pool| DB[(PostgreSQL)]
   API -->|nodemailer SMTP| Mail["Mail host<br/>(welcome / password / rent invoice)"]
   Mail --> Inbox["User & tenant inboxes"]
+  API -->|"@google/genai HTTPS"| Gemini["Google Gemini API<br/>(AI assistant)"]
 ```
 
 Every request goes through the same pipeline:
@@ -41,7 +42,7 @@ Request
   → ValidationPipe (whitelist + forbidNonWhitelisted)  (DTO validation)
   → Controller → Service → Repository → PostgreSQL
   → ResponseInterceptor (success envelope) / AllExceptionsFilter (error envelope)
-  ← TimeoutInterceptor caps the whole thing at REQUEST_TIMEOUT_MS
+  ← TimeoutInterceptor caps the whole thing at REQUEST_TIMEOUT_MS (or a route's @RequestTimeout)
 ```
 
 ---
@@ -146,6 +147,8 @@ Every variable is declared and validated in [src/config/env.validation.ts](src/c
 | | `MAIL_FROM` | `no-reply@rms.local` | |
 | | `MAIL_ENCRYPTION_KEY` | **required** | 64 hex chars. Encrypts `companies.mail_password`; **changing it makes every stored company mail password undecryptable** |
 | | `FRONTEND_URL` | **required** | Used for the "Sign in" button in emails |
+| AI | `GOOGLE_STUDIO_KEY` | — | Gemini API key from Google AI Studio. Optional: without it the API boots and `POST /ai/chat` answers 503 |
+| | `GEMINI_MODEL` | `gemini-flash-lite-latest` | Any Gemini model id the key can use. Flash-lite answers in about 1 to 3 s per call, which suits voice |
 
 To add a variable, declare it in `env.validation.ts` first, then expose it through the matching `registerAs` namespace in `src/config/`.
 
@@ -166,15 +169,15 @@ rms-backend/
     ├── bootstrap/
     │   ├── swagger.bootstrap.ts
     │   └── timezone.bootstrap.ts  # process.env.TZ = 'UTC', imported first
-    ├── config/                    # registerAs namespaces (app, database, jwt, mail, seed) + zod env schema
+    ├── config/                    # registerAs namespaces (app, database, jwt, mail, seed, ai) + zod env schema
     │   └── interfaces/
     ├── common/                    # Cross-cutting, domain-agnostic building blocks
     │   ├── constants/             # pagination, rent due day (1-28), postgres error codes, metadata keys
     │   ├── decorators/            # @Public @Roles @CurrentUser @CurrentCompanyId @ResponseMessage
-    │   │                          # @RateLimit @SkipResponseTransform @IsMoneyString
+    │   │                          # @RateLimit @RequestTimeout @SkipResponseTransform @IsMoneyString
     │   ├── dto/                   # PaginationQueryDto, UuidParamDto, AssignedEntityDto
     │   ├── enums/                 # UserRole, LeaseStatus, ChargeType, TransactionType, PaymentMethod,
-    │   │                          # PropertyType, SortOrder, ErrorCode, DashboardTrendRange
+    │   │                          # PropertyType, SortOrder, ErrorCode, DashboardTrendRange, AiChatRole
     │   ├── filters/               # AllExceptionsFilter → error envelope
     │   ├── guards/                # RateLimitGuard (in-memory buckets)
     │   ├── interceptors/          # ResponseInterceptor (success envelope), TimeoutInterceptor
@@ -182,7 +185,8 @@ rms-backend/
     │   ├── middleware/            # request logger
     │   └── utils/                 # pagination, query (search), database-error, hash (argon2), jwt,
     │                              # uuid (v7), encryption (AES-256-GCM), email-template, date,
-    │                              # outstanding-balance SQL, background (Vercel waitUntil), logger
+    │                              # outstanding-balance SQL, background (Vercel waitUntil), logger,
+    │                              # ai-tool (zod schema → Gemini function declaration)
     ├── database/
     │   ├── database.module.ts     # Global module: DRIZZLE + PG_POOL, session pinned to UTC
     │   ├── schema/                # One file per table + barrel index.ts
@@ -199,6 +203,7 @@ rms-backend/
         ├── ledger/                # charges + running-balance statement, monthly rent generation
         ├── payments/              # client_admin: payments against a lease
         ├── dashboard/             # client_admin: aggregated company stats
+        ├── ai/                    # client_admin: Gemini assistant with read-only tools over the modules above
         ├── mail/                  # SMTP sending (platform or per-company sender), throttled queue
         └── health/                # Terminus liveness / readiness
 ```
@@ -516,6 +521,21 @@ flowchart TD
 - **Breakdown:** active vs deactivated property counts.
 - **Lists:** the 5 most recent payments and the 5 leases with the highest outstanding balance.
 
+### 7. AI assistant
+
+`POST /ai/chat` (client_admin) answers plain-language questions about the caller's company, such as "who still owes rent?", "summarise this month" or "when did Ahmed Raza last pay?".
+
+```json
+{ "message": "And when did they last pay?", "history": [{ "role": "user", "text": "..." }, { "role": "model", "text": "..." }] }
+```
+
+- **Stateless.** The client sends earlier turns in `history`, oldest first, up to 20. The reply is `{ reply, toolsUsed }`.
+- **Tool calling.** Gemini never touches the database. It calls tools declared in [ai-tools.service.ts](src/modules/ai/ai-tools.service.ts), and each tool calls an existing service (`DashboardService`, `PropertiesService`, `TenantsService`, `LeasesService`, `PaymentsService`, `LedgerService`) with the caller's `companyId`. Validation, scoping and error messages therefore stay the same as in the REST routes.
+- **Read-only for now.** Writes (create a tenant, record a payment) need a confirmation step before Gemini may trigger them, so the assistant points the user to the matching screen instead.
+- **Errors.** A tool failure such as a `NotFound` is handed back to Gemini, which explains it. A Gemini overload or timeout returns 503 with a retry hint, after up to 3 attempts. Running out of quota returns 429. A missing `GOOGLE_STUDIO_KEY` returns 503.
+- **Limits.** 20 requests per minute per client, and a 60 s route timeout instead of `REQUEST_TIMEOUT_MS`, because one answer can take several Gemini calls.
+- **Voice.** Speech-to-text and text-to-speech happen in the frontend. This endpoint only ever sees text.
+
 ---
 
 ## API reference
@@ -535,6 +555,7 @@ All routes are under `/api/v1` unless noted. Swagger at `/docs` is the authorita
 | | `POST /ledger/generate-monthly-rent` | super_admin |
 | **payments** | `POST` · `GET` · `GET /:id` · `PATCH /:id/restore` · `DELETE /:id` | client_admin |
 | **dashboard** | `GET /dashboard/stats` | client_admin |
+| **ai** | `POST /ai/chat` | client_admin (20/min) |
 | **health** | `GET /health/liveness` · `GET /health/readiness` (no prefix) | Public |
 
 ### List endpoints
