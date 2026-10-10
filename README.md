@@ -526,6 +526,8 @@ flowchart TD
 
 ### 7. AI assistant
 
+Full walkthrough, including tools, tables, prompts and measured token usage per language: [AI.md](AI.md).
+
 `POST /ai/chat` (client_admin) answers plain-language questions about the caller's company, such as "who still owes rent?", "summarise this month" or "when did Ahmed Raza last pay?".
 
 ```json
