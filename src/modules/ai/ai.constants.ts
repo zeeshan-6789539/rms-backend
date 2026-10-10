@@ -1,3 +1,5 @@
+import { AiTranscriptScript } from '../../common/enums/ai-transcript-script.enum.js';
+
 export const AI_CHAT_MESSAGE_MAX_LENGTH = 2000;
 export const AI_CHAT_HISTORY_MAX_ITEMS = 20;
 export const AI_CHAT_HISTORY_TEXT_MAX_LENGTH = 8000;
@@ -30,6 +32,48 @@ export const buildAiSystemInstruction = (today: string): string =>
     'If a tool returns an error, explain it plainly and suggest what the user can do.',
     'You are read-only: if asked to create, change or delete anything, say that is not supported yet and point them to the matching screen in the app.',
     'Replies may be read aloud, so keep them short and conversational: no markdown, no tables, and no ids unless the user asks for them.',
-    'Reply in the language the user writes in (English or Urdu); keep names, property numbers and amounts exactly as the tools return them.',
+    'Match the language and script of the user\'s latest message: English gets English, Urdu script gets Urdu script, and Roman Urdu (Urdu written in Latin letters, e.g. "kis ka kiraya baqi hai") gets Roman Urdu. Mixed Urdu-English is normal; reply in the same mix.',
+    'Keep names, property numbers and amounts exactly as the tools return them.',
     `Today's date is ${today} (UTC).`,
+  ].join('\n');
+
+// 30 s of 16 kHz 16-bit mono WAV is ~1.28 M base64 characters; the margin covers headers and rounding
+export const AI_AUDIO_BASE64_MAX_LENGTH = 1_400_000;
+export const AI_AUDIO_MIME_TYPE_PATTERN = /^audio\/(wav|x-wav|mpeg|mp3|aac|ogg|flac|aiff|webm)(;.*)?$/i;
+// ~35 s of 24 kHz WAV (~2.2 MB as base64), well under Vercel's 4.5 MB response cap
+export const AI_SPEECH_TEXT_MAX_LENGTH = 600;
+// A mic's noise floor peaks around 0.005–0.01; quiet speech still peaks above 0.05
+export const AI_SILENCE_PEAK_LEVEL = 0.02;
+// Gemini is told to answer this sentinel instead of inventing words for a silent clip
+export const AI_NO_SPEECH_SENTINEL = 'NO_SPEECH';
+// A spoken reply is generated in one pass and can take longer than a chat call
+export const AI_SPEECH_ATTEMPT_TIMEOUT_MS = 45_000;
+export const AI_SPEECH_ROUTE_TIMEOUT_MS = 100_000;
+
+const TRANSCRIPT_SCRIPT_RULES: Record<AiTranscriptScript, string> = {
+  [AiTranscriptScript.URDU]:
+    'Write every Urdu word in Urdu (Perso-Arabic) script, never in Latin letters. Example: "اس مہینے کس کا کرایہ باقی ہے؟"',
+  [AiTranscriptScript.ROMAN]:
+    'Write every Urdu word in Roman Urdu: Latin letters, the way Pakistanis type in chat. Example: "is mahine kis ka kiraya baqi hai?"',
+};
+
+export const buildAiTranscriptionPrompt = (script: AiTranscriptScript): string =>
+  [
+    TRANSCRIPT_SCRIPT_RULES[script],
+    'Transcribe the speech in this recording exactly as spoken.',
+    'The speaker is in Pakistan and may use Urdu, English or a mix of both in one sentence.',
+    'Keep English words in English, and keep names, amounts and property numbers such as P-0001 as spoken.',
+    'Do not answer, translate, summarise or add anything.',
+    `If there is no intelligible speech, output exactly ${AI_NO_SPEECH_SENTINEL}.`,
+    'Output only the transcript.',
+  ].join('\n');
+
+// Without the instruction, the TTS model may reply to the text instead of reading it
+export const buildAiSpeechPrompt = (text: string): string =>
+  [
+    'Read the following text aloud exactly as written, word for word, in a warm, clear voice with a natural Pakistani Urdu accent.',
+    'Read Urdu, whether in Urdu script or Roman Urdu, as native Urdu, and English words the way a Pakistani speaker says them.',
+    'Do not answer, translate or add anything.',
+    '',
+    text,
   ].join('\n');

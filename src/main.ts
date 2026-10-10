@@ -1,10 +1,12 @@
 import './bootstrap/timezone.bootstrap.js';
 import { RequestMethod, VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import compression from 'compression';
 import helmet from 'helmet';
 import { AppModule } from './app.module.js';
 import { setupSwagger } from './bootstrap/swagger.bootstrap.js';
+import { JSON_BODY_LIMIT } from './common/constants/body-limit.constants.js';
 import { createRequestLogger } from './common/middleware/request-logger.middleware.js';
 import { createAppLogger } from './common/utils/logger.util.js';
 import { interopDefault } from './common/utils/module.util.js';
@@ -12,8 +14,10 @@ import { appConfig } from './config/app.config.js';
 import type { IAppConfig } from './config/interfaces/i-app-config.js';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
   const config = app.get<IAppConfig>(appConfig.KEY);
+
+  app.useBodyParser('json', { limit: JSON_BODY_LIMIT });
 
   app.useLogger(createAppLogger(config));
   // Nest only auto-flushes inside the listen callback, which never fires on Vercel, so logs would stay buffered forever

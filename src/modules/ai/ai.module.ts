@@ -6,8 +6,10 @@ import { PaymentsModule } from '../payments/payments.module.js';
 import { PropertiesModule } from '../properties/properties.module.js';
 import { TenantsModule } from '../tenants/tenants.module.js';
 import { AiToolsService } from './ai-tools.service.js';
+import { AiVoiceService } from './ai-voice.service.js';
 import { AiController } from './ai.controller.js';
 import { AiService } from './ai.service.js';
+import { GeminiClientService } from './gemini-client.service.js';
 
 @Module({
   imports: [
@@ -19,6 +21,6 @@ import { AiService } from './ai.service.js';
     LedgerModule,
   ],
   controllers: [AiController],
-  providers: [AiService, AiToolsService],
+  providers: [AiService, AiToolsService, AiVoiceService, GeminiClientService],
 })
 export class AiModule {}

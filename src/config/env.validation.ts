@@ -52,6 +52,8 @@ export const envSchema = z.object({
   // Optional so the API boots without AI; POST /ai/chat answers 503 until it is set
   GOOGLE_STUDIO_KEY: z.string().min(1).optional(),
   GEMINI_MODEL: z.string().min(1).default('gemini-flash-lite-latest'),
+  GEMINI_TTS_MODEL: z.string().min(1).default('gemini-3.8-flash-tts'),
+  GEMINI_TTS_VOICE: z.string().min(1).default('Kore'),
 });
 
 // Fails fast at bootstrap with every invalid variable listed at once

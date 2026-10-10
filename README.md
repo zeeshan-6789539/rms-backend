@@ -148,7 +148,8 @@ Every variable is declared and validated in [src/config/env.validation.ts](src/c
 | | `MAIL_ENCRYPTION_KEY` | **required** | 64 hex chars. Encrypts `companies.mail_password`; **changing it makes every stored company mail password undecryptable** |
 | | `FRONTEND_URL` | **required** | Used for the "Sign in" button in emails |
 | AI | `GOOGLE_STUDIO_KEY` | — | Gemini API key from Google AI Studio. Optional: without it the API boots and `POST /ai/chat` answers 503 |
-| | `GEMINI_MODEL` | `gemini-flash-lite-latest` | Any Gemini model id the key can use. Flash-lite answers in about 1 to 3 s per call, which suits voice |
+| | `GEMINI_MODEL` | `gemini-flash-lite-latest` | Chat and transcription. Any Gemini model id the key can use. Flash-lite answers in about 1 to 3 s per call, which suits voice |
+| | `GEMINI_TTS_MODEL` / `GEMINI_TTS_VOICE` | `gemini-3.8-flash-tts` / `Kore` | Spoken replies. `Kore` is a female voice, `Charon` a male one; both read Urdu with a Pakistani accent |
 
 To add a variable, declare it in `env.validation.ts` first, then expose it through the matching `registerAs` namespace in `src/config/`.
 
@@ -186,7 +187,8 @@ rms-backend/
     │   └── utils/                 # pagination, query (search), database-error, hash (argon2), jwt,
     │                              # uuid (v7), encryption (AES-256-GCM), email-template, date,
     │                              # outstanding-balance SQL, background (Vercel waitUntil), logger,
-    │                              # ai-tool (zod schema → Gemini function declaration)
+    │                              # ai-tool (zod schema → Gemini function declaration),
+    │                              # audio (WAV header, peak level for silence detection)
     ├── database/
     │   ├── database.module.ts     # Global module: DRIZZLE + PG_POOL, session pinned to UTC
     │   ├── schema/                # One file per table + barrel index.ts
@@ -203,7 +205,8 @@ rms-backend/
         ├── ledger/                # charges + running-balance statement, monthly rent generation
         ├── payments/              # client_admin: payments against a lease
         ├── dashboard/             # client_admin: aggregated company stats
-        ├── ai/                    # client_admin: Gemini assistant with read-only tools over the modules above
+        ├── ai/                    # client_admin: Gemini assistant with read-only tools over the modules above,
+        │                          # plus voice (transcribe Urdu/English speech, speak replies in an Urdu accent)
         ├── mail/                  # SMTP sending (platform or per-company sender), throttled queue
         └── health/                # Terminus liveness / readiness
 ```
@@ -530,11 +533,18 @@ flowchart TD
 ```
 
 - **Stateless.** The client sends earlier turns in `history`, oldest first, up to 20. The reply is `{ reply, toolsUsed }`.
+- **Languages.** English, Urdu script and Roman Urdu (Urdu typed in Latin letters, e.g. "is mahine kis ka kiraya baqi hai?"). The reply matches the language and script of the question, including mixed Urdu-English.
 - **Tool calling.** Gemini never touches the database. It calls tools declared in [ai-tools.service.ts](src/modules/ai/ai-tools.service.ts), and each tool calls an existing service (`DashboardService`, `PropertiesService`, `TenantsService`, `LeasesService`, `PaymentsService`, `LedgerService`) with the caller's `companyId`. Validation, scoping and error messages therefore stay the same as in the REST routes.
 - **Read-only for now.** Writes (create a tenant, record a payment) need a confirmation step before Gemini may trigger them, so the assistant points the user to the matching screen instead.
 - **Errors.** A tool failure such as a `NotFound` is handed back to Gemini, which explains it. A Gemini overload or timeout returns 503 with a retry hint, after up to 3 attempts. Running out of quota returns 429. A missing `GOOGLE_STUDIO_KEY` returns 503.
-- **Limits.** 20 requests per minute per client, and a 60 s route timeout instead of `REQUEST_TIMEOUT_MS`, because one answer can take several Gemini calls.
-- **Voice.** Speech-to-text and text-to-speech happen in the frontend. This endpoint only ever sees text.
+- **Limits.** 20 requests per minute per client on each AI route, and a 60 s route timeout instead of `REQUEST_TIMEOUT_MS`, because one answer can take several Gemini calls.
+
+Two voice routes, both handled by [ai-voice.service.ts](src/modules/ai/ai-voice.service.ts), sit beside the chat. Both use Gemini rather than browser speech, because browser speech recognition handles mixed Urdu-English poorly and most systems have no Urdu voice.
+
+- **`POST /ai/transcribe`** `{ audioBase64, mimeType, script }` → `{ transcript }`. It sends the recording (the frontend sends 16 kHz mono WAV, at most 30 s) to `GEMINI_MODEL`. `script` is `urdu` or `roman` and controls how Urdu words are written; English words stay English. A near-silent WAV is rejected before Gemini is called, because Gemini invents words for silence. A transcript with no letters is rejected too. Both return 400 "couldn't hear a question".
+- **`POST /ai/speech`** `{ text }` → `{ mimeType: "audio/wav", audioBase64 }`. It reads a reply aloud with `GEMINI_TTS_MODEL` / `GEMINI_TTS_VOICE` and a Pakistani Urdu accent, for English, Urdu script and Roman Urdu alike. The prompt tells the model to read the text verbatim; without that, it tends to answer the text instead. Text is capped at 600 characters (~35 s of audio) to stay under Vercel's 4.5 MB response limit. A typical three-sentence reply takes 5 to 12 s, so the client shows the text first. The route timeout is 100 s.
+- **Body limit.** JSON bodies may be up to 2 MB (`JSON_BODY_LIMIT` in [main.ts](src/main.ts)) so a 30 s clip fits. Express's default is 100 KB.
+- Shared Gemini access and error mapping (429, 503 retry hint, missing key) live in [gemini-client.service.ts](src/modules/ai/gemini-client.service.ts).
 
 ---
 
@@ -555,7 +565,7 @@ All routes are under `/api/v1` unless noted. Swagger at `/docs` is the authorita
 | | `POST /ledger/generate-monthly-rent` | super_admin |
 | **payments** | `POST` · `GET` · `GET /:id` · `PATCH /:id/restore` · `DELETE /:id` | client_admin |
 | **dashboard** | `GET /dashboard/stats` | client_admin |
-| **ai** | `POST /ai/chat` | client_admin (20/min) |
+| **ai** | `POST /ai/chat` · `POST /ai/transcribe` · `POST /ai/speech` | client_admin (20/min each) |
 | **health** | `GET /health/liveness` · `GET /health/readiness` (no prefix) | Public |
 
 ### List endpoints

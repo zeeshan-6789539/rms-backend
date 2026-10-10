@@ -1,18 +1,8 @@
-import { NotFoundException, ServiceUnavailableException } from '@nestjs/common';
-import { ApiError } from '@google/genai';
+import { NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AiToolsService } from './ai-tools.service.js';
-import { AI_PROVIDER_BUSY_MESSAGE } from './ai.constants.js';
 import { AiService } from './ai.service.js';
-
-const generateContent = vi.fn();
-
-vi.mock('@google/genai', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@google/genai')>()),
-  GoogleGenAI: class {
-    models = { generateContent };
-  },
-}));
+import type { GeminiClientService } from './gemini-client.service.js';
 
 const textResponse = (text: string): Record<string, unknown> => ({
   text,
@@ -31,12 +21,15 @@ const callResponse = (name: string, args: Record<string, unknown>): Record<strin
 };
 
 describe('AiService', () => {
+  const generateContent = vi.fn();
   const execute = vi.fn();
+  const gemini = { generateContent } as unknown as GeminiClientService;
   const aiTools = {
     declarations: [{ name: 'get_lease' }],
     find: (name: string) => (name === 'get_lease' ? { declaration: { name }, execute } : undefined),
   } as unknown as AiToolsService;
-  const service = new AiService({ apiKey: 'test-key', model: 'gemini-test' }, aiTools);
+  const config = { apiKey: 'test-key', model: 'gemini-test', ttsModel: 'tts-test', ttsVoice: 'Kore' };
+  const service = new AiService(config, gemini, aiTools);
 
   beforeEach(() => {
     generateContent.mockReset();
@@ -50,6 +43,7 @@ describe('AiService', () => {
       reply: 'You have 4 active leases.',
       toolsUsed: [],
     });
+    expect(generateContent.mock.calls[0][0].model).toBe('gemini-test');
   });
 
   it('runs the requested tool for the caller company and returns the follow-up answer', async () => {
@@ -87,21 +81,5 @@ describe('AiService', () => {
     execute.mockRejectedValueOnce(new Error('connection reset'));
 
     await expect(service.chat('company-1', { message: 'Show lease' })).rejects.toThrow('connection reset');
-  });
-
-  it('turns a Gemini overload into a 503 with a retry hint', async () => {
-    generateContent.mockRejectedValueOnce(new ApiError({ message: 'high demand', status: 503 }));
-
-    await expect(service.chat('company-1', { message: 'Hi' })).rejects.toThrow(
-      new ServiceUnavailableException(AI_PROVIDER_BUSY_MESSAGE),
-    );
-  });
-
-  it('answers 503 when no API key is configured', async () => {
-    const unconfigured = new AiService({ apiKey: undefined, model: 'gemini-test' }, aiTools);
-
-    await expect(unconfigured.chat('company-1', { message: 'Hi' })).rejects.toBeInstanceOf(
-      ServiceUnavailableException,
-    );
   });
 });
