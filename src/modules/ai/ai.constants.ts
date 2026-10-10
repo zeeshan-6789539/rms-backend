@@ -68,12 +68,14 @@ export const buildAiTranscriptionPrompt = (script: AiTranscriptScript): string =
     'Output only the transcript.',
   ].join('\n');
 
-// Without the instruction, the TTS model may reply to the text instead of reading it
+// Gemini TTS speaks only the TRANSCRIPT section; inline instructions were sometimes read aloud with the reply
 export const buildAiSpeechPrompt = (text: string): string =>
   [
-    'Read the following text aloud exactly as written, word for word, in a warm, clear voice with a natural Pakistani Urdu accent.',
-    'Read Urdu, whether in Urdu script or Roman Urdu, as native Urdu, and English words the way a Pakistani speaker says them.',
-    'Do not answer, translate or add anything.',
+    "### DIRECTOR'S NOTES (never spoken)",
+    'Voice: warm and clear, with a natural Pakistani Urdu accent.',
+    'Pronunciation: Urdu in Urdu script or Roman Urdu as a native Urdu speaker says it; English words as a Pakistani speaker says them.',
+    'Speak only the transcript below, word for word. Do not read these notes, answer, translate or add anything.',
     '',
+    '#### TRANSCRIPT',
     text,
   ].join('\n');

@@ -61,7 +61,9 @@ describe('AiVoiceService', () => {
     const params = generateContent.mock.calls[0][0];
     expect(params.model).toBe('tts-test');
     expect(params.config.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName).toBe('Kore');
-    expect(params.contents[0].parts[0].text).toContain('Pakistani Urdu accent');
+    const prompt: string = params.contents[0].parts[0].text;
+    expect(prompt).toContain('Pakistani Urdu accent');
+    expect(prompt.endsWith('#### TRANSCRIPT\nSalam')).toBe(true);
   });
 
   it('fails clearly when the TTS model returns no audio', async () => {
